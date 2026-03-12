@@ -33,15 +33,12 @@ export function LockScreen() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      {/* Background Image Layer */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-1000 dark:brightness-75"
         style={{ backgroundImage: 'url(/assets/bg.png)' }}
       />
-      {/* Dynamic Overlay for blending */}
       <div className="absolute inset-0 z-0 bg-background/40 backdrop-blur-[2px] transition-all duration-700 dark:bg-black/60" />
 
-      {/* Glassmorphism Card */}
       <div className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl border border-white/20 bg-white/60 shadow-2xl backdrop-blur-2xl transition-all dark:border-white/10 dark:bg-black/40">
         <div className="px-8 pb-6 pt-10 text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/30">
@@ -56,7 +53,7 @@ export function LockScreen() {
             <label htmlFor="unlock-username" className="text-sm font-medium text-foreground/80">
               用户名（可选）
             </label>
-            <div className="relative group">
+            <div className="group relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 transition-colors group-focus-within:text-primary">
                 <UserIcon className="h-5 w-5 text-muted-foreground group-focus-within:text-primary" />
               </div>
@@ -76,7 +73,7 @@ export function LockScreen() {
             <label htmlFor="unlock-password" className="text-sm font-medium text-foreground/80">
               密码
             </label>
-            <div className="relative group">
+            <div className="group relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 transition-colors group-focus-within:text-primary">
                 <KeyIcon className="h-5 w-5 text-muted-foreground group-focus-within:text-primary" />
               </div>
@@ -106,7 +103,7 @@ export function LockScreen() {
               className="inline-flex flex-[0.8] items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/20 px-4 py-3 text-sm font-medium text-foreground transition-all hover:bg-white/30 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/40"
             >
               <ArrowLeftOnRectangleIcon className="h-5 w-5" />
-              退出
+              退出登录
             </button>
 
             <button

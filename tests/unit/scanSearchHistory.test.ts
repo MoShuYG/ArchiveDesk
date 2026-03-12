@@ -55,26 +55,38 @@ describe("scan/search/history flow", () => {
     expect(incrementalResult.status).toBe("success");
   });
 
-  test("should support mixed folder search and history root filter", async () => {
+  test("should globally sort mixed folder and file search results", async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "lsm-mixed-"));
-    const chapterDir = path.join(tempRoot, "ChapterOne");
-    await fs.mkdir(chapterDir, { recursive: true });
-    await fs.writeFile(path.join(chapterDir, "intro.txt"), "chapter intro");
+    const folderPath = path.join(tempRoot, "bbb-match-folder");
+    await fs.mkdir(folderPath, { recursive: true });
+    await fs.writeFile(path.join(tempRoot, "aaa-match-file.txt"), "match content");
 
-    const createdRoot = await libraryService.createRoot({ name: "mixed-root", path: tempRoot });
+    await libraryService.createRoot({ name: "mixed-root", path: tempRoot });
     const fullTask = scanService.enqueueFullScan();
     const fullResult = await waitForScanTask(fullTask.id);
     expect(fullResult.status).toBe("success");
 
     const mixed = await searchService.searchEntries({
-      q: "Chapter",
+      q: "match",
       page: 1,
       pageSize: 20,
-      sortBy: "relevance",
+      sortBy: "name",
       order: "asc"
     });
-    expect(mixed.total).toBeGreaterThanOrEqual(1);
-    expect(mixed.items[0].kind).toBe("folder");
+
+    expect(mixed.total).toBeGreaterThanOrEqual(2);
+    expect(mixed.items[0]).toMatchObject({ kind: "file", name: "aaa-match-file.txt" });
+    expect(mixed.items[1]).toMatchObject({ kind: "folder", name: "bbb-match-folder" });
+  });
+
+  test("should support history root filter", async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "lsm-history-filter-"));
+    await fs.writeFile(path.join(tempRoot, "intro.txt"), "chapter intro");
+
+    const createdRoot = await libraryService.createRoot({ name: "filter-root", path: tempRoot });
+    const fullTask = scanService.enqueueFullScan();
+    const fullResult = await waitForScanTask(fullTask.id);
+    expect(fullResult.status).toBe("success");
 
     const fileSearch = searchService.search({
       q: "intro",

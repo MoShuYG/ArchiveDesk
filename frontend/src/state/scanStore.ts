@@ -51,7 +51,6 @@ export const useScanStore = create<ScanState>((set, get) => ({
     },
 
     pollTask(taskId: string) {
-        // Clear any existing poll
         get().stopPolling();
 
         const timer = setInterval(async () => {
@@ -59,7 +58,6 @@ export const useScanStore = create<ScanState>((set, get) => ({
                 const task = await scanService.getTask(taskId);
                 set({ currentTask: task });
 
-                // Stop polling when task is done
                 if (task.status === 'success' || task.status === 'failed' || task.status === 'canceled') {
                     get().stopPolling();
                     set({ isScanning: false });

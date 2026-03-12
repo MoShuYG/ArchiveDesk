@@ -88,7 +88,7 @@ export function ScanProgress() {
             <div className="mt-6">
               <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-amber-500">
                 <InformationCircleIcon className="h-4 w-4" />
-                扫描告警 ({currentTask.warnings.length})
+                扫描警告 ({currentTask.warnings.length})
               </h4>
               <ul className="custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-lg border border-border/50 bg-secondary/20 p-3 pr-2 text-sm text-muted-foreground">
                 {currentTask.warnings.map((warning, idx) => (
@@ -143,4 +143,3 @@ function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
-

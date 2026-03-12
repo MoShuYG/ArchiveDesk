@@ -152,13 +152,13 @@ export function HomePage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 pb-8 animate-in fade-in duration-500">
+    <div className="animate-in fade-in flex flex-col gap-6 pb-8 duration-500">
       <section className="rounded-2xl border border-white/20 bg-card/80 p-5 shadow-lg shadow-black/5 backdrop-blur-xl transition-all dark:border-white/10 dark:bg-card/50 dark:shadow-black/40">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <MagnifyingGlassIcon className="h-5 w-5" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">全局检索</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">全局搜索</h1>
         </div>
         <div className="grid gap-4 lg:grid-cols-[1fr_220px_180px_130px]">
           <input

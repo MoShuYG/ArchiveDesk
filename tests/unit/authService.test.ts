@@ -25,6 +25,14 @@ describe("authService", () => {
     expect(refreshed.accessToken).toBeTruthy();
 
     userModel.setLastActivity(auth.sessionId, Date.now() - AUTO_LOCK_MS - 10);
+
+    expect(() => authService.refresh(refreshed.refreshToken)).toThrow(AppError);
+    try {
+      authService.refresh(refreshed.refreshToken);
+    } catch (error) {
+      expect((error as AppError).code).toBe(ErrorCodes.SESSION_LOCKED);
+    }
+
     expect(() => authService.authenticateAccessToken(refreshed.accessToken)).toThrow(AppError);
     try {
       authService.authenticateAccessToken(refreshed.accessToken);
@@ -40,4 +48,3 @@ describe("authService", () => {
     });
   });
 });
-

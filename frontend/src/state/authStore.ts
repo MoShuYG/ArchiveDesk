@@ -5,7 +5,6 @@ import { getAccessToken, getRefreshToken, clearTokens } from '../services/apiSer
 import { ApiRequestError } from '../services/apiService';
 
 interface AuthState {
-    // State
     session: SessionInfo | null;
     isAuthenticated: boolean;
     isLocked: boolean;
@@ -13,7 +12,6 @@ interface AuthState {
     needsSetup: boolean;
     error: string | null;
 
-    // Actions
     login: (password: string, username?: string) => Promise<void>;
     setupPassword: (password: string, username?: string) => Promise<void>;
     logout: () => Promise<void>;
@@ -55,7 +53,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             await authService.setupPassword(password, username);
-            // After setup, auto-login
             await get().login(password, username);
         } catch (err) {
             const message = err instanceof ApiRequestError ? err.message : '初始化密码失败';
@@ -92,7 +89,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     async unlock(password: string, username?: string) {
         set({ isLoading: true, error: null });
         try {
-            // Re-login to get fresh tokens and unlock
             await authService.login(password, username);
             const session = await authService.getSession();
             set({
@@ -134,7 +130,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     return;
                 }
                 if (err.status === 401) {
-                    // Try refresh
                     const rt = getRefreshToken();
                     if (rt) {
                         try {

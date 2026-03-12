@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
-import { itemModel, ItemRecord, ItemType, SearchSortBy, SortOrder } from "../../models/itemModel";
+import { itemModel, type ItemType, type SearchItemRecord, type SearchSortBy, type SortOrder } from "../../models/itemModel";
 import { libraryModel } from "../../models/libraryModel";
 
 type FolderSearchEntry = {
@@ -25,6 +25,7 @@ type FileSearchEntry = {
   type: ItemType;
   itemId: string;
   previewable: boolean;
+  score: number;
 };
 
 export type SearchEntry = FolderSearchEntry | FileSearchEntry;
@@ -54,6 +55,18 @@ function getFileName(filePath: string): string {
 
 function getRelPath(rootPath: string, absolutePath: string): string {
   return path.relative(rootPath, absolutePath).replace(/\\/g, "/");
+}
+
+function normalizeSearchSortBy(hasQuery: boolean, sortBy?: SearchSortBy): SearchSortBy {
+  const resolved = sortBy ?? (hasQuery ? "relevance" : "updatedAt");
+  if (!hasQuery && resolved === "relevance") {
+    return "updatedAt";
+  }
+  return resolved;
+}
+
+function normalizeSearchOrder(sortBy: SearchSortBy, order?: SortOrder): SortOrder {
+  return order ?? (sortBy === "relevance" ? "asc" : "desc");
 }
 
 async function walkDirectories(rootPath: string, parentRelPath: string, output: FolderIndexItem[]): Promise<void> {
@@ -94,8 +107,8 @@ async function fetchAllMatchedFiles(input: {
   tag?: string;
   sortBy: SearchSortBy;
   order: SortOrder;
-}): Promise<{ total: number; rows: ItemRecord[] }> {
-  const first = itemModel.search({
+}): Promise<{ total: number; rows: SearchItemRecord[] }> {
+  const first = itemModel.searchWithScore({
     query: input.q,
     page: 1,
     pageSize: 1,
@@ -111,10 +124,10 @@ async function fetchAllMatchedFiles(input: {
   }
 
   const chunkSize = 3000;
-  const rows: ItemRecord[] = [];
+  const rows: SearchItemRecord[] = [];
   const pageCount = Math.ceil(first.total / chunkSize);
   for (let page = 1; page <= pageCount; page += 1) {
-    const chunk = itemModel.search({
+    const chunk = itemModel.searchWithScore({
       query: input.q,
       page,
       pageSize: chunkSize,
@@ -142,35 +155,50 @@ function scoreFolderName(name: string, query: string): number {
   return index === -1 ? Number.MAX_SAFE_INTEGER : 2 + index;
 }
 
-function compareFolders(a: FolderSearchEntry, b: FolderSearchEntry, sortBy: SearchSortBy, order: SortOrder): number {
+function compareSearchEntries(a: SearchEntry, b: SearchEntry, sortBy: SearchSortBy, order: SortOrder): number {
   const direction = order === "asc" ? 1 : -1;
   let cmp = 0;
+
   if (sortBy === "updatedAt") {
     cmp = a.updatedAt - b.updatedAt;
   } else if (sortBy === "relevance") {
     cmp = a.score - b.score;
+  } else if (sortBy === "type") {
+    const aType = a.kind === "folder" ? "folder" : a.type;
+    const bType = b.kind === "folder" ? "folder" : b.type;
+    cmp = collator.compare(aType, bType);
+  } else if (sortBy === "size") {
+    cmp = (a.kind === "file" ? a.size : 0) - (b.kind === "file" ? b.size : 0);
   } else {
     cmp = collator.compare(a.name, b.name);
   }
+
   if (cmp !== 0) {
     return cmp * direction;
   }
-  return collator.compare(a.name, b.name) * direction;
+
+  const nameCmp = collator.compare(a.name, b.name);
+  if (nameCmp !== 0) {
+    return nameCmp * direction;
+  }
+
+  return collator.compare(a.relPath, b.relPath) * direction;
 }
 
-function toFileEntryWithRoot(item: ItemRecord, rootPath: string): FileSearchEntry {
-  const fileName = getFileName(item.path);
+function toFileEntryWithRoot(record: SearchItemRecord, rootPath: string): FileSearchEntry {
+  const fileName = getFileName(record.item.path);
   return {
     kind: "file",
-    rootId: item.rootId,
-    relPath: getRelPath(rootPath, item.path),
+    rootId: record.item.rootId,
+    relPath: getRelPath(rootPath, record.item.path),
     name: fileName,
-    updatedAt: item.updatedAt,
-    size: item.size,
-    ext: item.ext,
-    type: item.type,
-    itemId: item.id,
-    previewable: isPreviewable(item.ext)
+    updatedAt: record.item.updatedAt,
+    size: record.item.size,
+    ext: record.item.ext,
+    type: record.item.type,
+    itemId: record.item.id,
+    previewable: isPreviewable(record.item.ext),
+    score: record.score
   };
 }
 
@@ -186,8 +214,8 @@ export const searchService = {
     order?: SortOrder;
   }) {
     const hasQuery = Boolean(input.q && input.q.trim().length > 0);
-    const sortBy = input.sortBy ?? (hasQuery ? "relevance" : "updatedAt");
-    const order = input.order ?? (sortBy === "relevance" ? "asc" : "desc");
+    const sortBy = normalizeSearchSortBy(hasQuery, input.sortBy);
+    const order = normalizeSearchOrder(sortBy, input.order);
 
     const result = itemModel.search({
       query: input.q,
@@ -218,8 +246,8 @@ export const searchService = {
     order?: SortOrder;
   }): Promise<{ page: number; pageSize: number; total: number; items: SearchEntry[] }> {
     const hasQuery = Boolean(input.q && input.q.trim().length > 0);
-    const sortBy = input.sortBy ?? (hasQuery ? "relevance" : "updatedAt");
-    const order = input.order ?? (sortBy === "relevance" ? "asc" : "desc");
+    const sortBy = normalizeSearchSortBy(hasQuery, input.sortBy);
+    const order = normalizeSearchOrder(sortBy, input.order);
 
     const roots = libraryModel
       .listRoots()
@@ -262,7 +290,6 @@ export const searchService = {
         }
       }
     }
-    folderMatches.sort((a, b) => compareFolders(a, b, sortBy, order));
 
     const fileRows = await fetchAllMatchedFiles({
       q: input.q,
@@ -275,7 +302,7 @@ export const searchService = {
     const rootPathById = new Map(roots.map((root) => [root.id, root.path]));
     const fileEntries = fileRows.rows
       .map((row) => {
-        const rootPath = rootPathById.get(row.rootId);
+        const rootPath = rootPathById.get(row.item.rootId);
         if (!rootPath) {
           return null;
         }
@@ -284,7 +311,9 @@ export const searchService = {
       .filter(Boolean) as FileSearchEntry[];
 
     const merged: SearchEntry[] = [...folderMatches, ...fileEntries];
-    const total = folderMatches.length + fileRows.total;
+    merged.sort((a, b) => compareSearchEntries(a, b, sortBy, order));
+
+    const total = merged.length;
     const offset = (input.page - 1) * input.pageSize;
     const paged = merged.slice(offset, offset + input.pageSize);
 

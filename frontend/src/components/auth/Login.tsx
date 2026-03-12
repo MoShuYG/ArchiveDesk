@@ -45,21 +45,18 @@ export function Login() {
       }
       navigate('/', { replace: true });
     } catch {
-      // 错误由 store 管理。
+      // Error message is already handled in the store.
     }
   }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      {/* Background Image Layer */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-1000 dark:brightness-75"
         style={{ backgroundImage: 'url(/assets/bg.png)' }}
       />
-      {/* Dynamic Overlay for blending */}
       <div className="absolute inset-0 z-0 bg-background/40 backdrop-blur-[2px] transition-all duration-700 dark:bg-black/60" />
 
-      {/* Glassmorphism Card */}
       <div className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl border border-white/20 bg-white/60 shadow-2xl backdrop-blur-2xl transition-all dark:border-white/10 dark:bg-black/40">
         <div className="px-8 pb-6 pt-10 text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/30">
@@ -137,30 +134,29 @@ export function Login() {
                 </span>
               ) : (
                 <>
-                  {showSetup ? '设置并登录' : '登 录'}
+                  {showSetup ? '设置并登录' : '登录'}
                   <ArrowRightEndOnRectangleIcon className="h-5 w-5" />
                 </>
               )}
             </button>
           </div>
         </form>
-        {
-          !needsSetup ? (
-            <div className="border-t border-white/20 bg-background/20 px-8 pb-8 pt-6 text-center dark:border-white/5 dark:bg-black/20">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSetupMode((v) => !v);
-                  setValidationError('');
-                  clearError();
-                }}
-                className="text-sm font-medium text-foreground/60 transition-colors hover:text-primary hover:underline"
-              >
-                {isSetupMode ? '返回登录' : '首次使用？设置密码'}
-              </button>
-            </div>
-          ) : null
-        }
+
+        {!needsSetup ? (
+          <div className="border-t border-white/20 bg-background/20 px-8 pb-8 pt-6 text-center dark:border-white/5 dark:bg-black/20">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSetupMode((v) => !v);
+                setValidationError('');
+                clearError();
+              }}
+              className="text-sm font-medium text-foreground/60 transition-colors hover:text-primary hover:underline"
+            >
+              {isSetupMode ? '返回登录' : '首次使用？设置密码'}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -189,10 +185,10 @@ function InputField({
 }) {
   return (
     <div className="space-y-2">
-      <label htmlFor={id} className="text-sm font-medium text-foreground/80 pl-1">
+      <label htmlFor={id} className="pl-1 text-sm font-medium text-foreground/80">
         {label}
       </label>
-      <div className="relative group">
+      <div className="group relative">
         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 transition-colors">
           {icon}
         </div>

@@ -5,7 +5,7 @@ import { env } from "../../config/env";
 import { ACCESS_TOKEN_TTL_SECONDS, AUTO_LOCK_MS, REFRESH_TOKEN_TTL_SECONDS } from "../../config/jwt";
 import { AppError } from "../../errors/appError";
 import { ErrorCodes } from "../../errors/errorCodes";
-import { hashToken, userModel } from "../../models/userModel";
+import { hashToken, userModel, type SessionRecord } from "../../models/userModel";
 
 type AccessTokenPayload = {
   sub: string;
@@ -71,6 +71,14 @@ function verifyRefreshToken(token: string): RefreshTokenPayload {
     }
     throw new AppError(401, ErrorCodes.UNAUTHORIZED, "Invalid refresh token.");
   }
+}
+
+function isSessionLocked(session: Pick<SessionRecord, "id" | "locked" | "lastActivity">): boolean {
+  const timedOut = Date.now() - session.lastActivity > AUTO_LOCK_MS;
+  if (timedOut && !session.locked) {
+    userModel.lockSession(session.id);
+  }
+  return timedOut || session.locked;
 }
 
 export const authService = {
@@ -150,12 +158,12 @@ export const authService = {
     if (!session || session.revokedAt) {
       throw new AppError(401, ErrorCodes.UNAUTHORIZED, "Session not found or revoked.");
     }
-    if (session.locked) {
-      throw new AppError(423, ErrorCodes.SESSION_LOCKED, "Session is locked.");
-    }
     if (session.expiresAt <= Date.now()) {
       userModel.revokeSession(session.id);
       throw new AppError(401, ErrorCodes.TOKEN_EXPIRED, "Refresh token expired.");
+    }
+    if (isSessionLocked(session)) {
+      throw new AppError(423, ErrorCodes.SESSION_LOCKED, "Session is locked.");
     }
     const hashed = hashToken(refreshToken);
     if (hashed !== session.refreshTokenHash) {
@@ -184,22 +192,17 @@ export const authService = {
       userModel.revokeSession(session.id);
       throw new AppError(401, ErrorCodes.TOKEN_EXPIRED, "Session expired.");
     }
-    const idleMs = Date.now() - session.lastActivity;
-    const timedOut = idleMs > AUTO_LOCK_MS;
-    if (timedOut && !session.locked) {
-      userModel.lockSession(session.id);
-    }
-    const isLocked = timedOut || session.locked;
-    if (isLocked && !options?.allowLocked) {
+    const locked = isSessionLocked(session);
+    if (locked && !options?.allowLocked) {
       throw new AppError(423, ErrorCodes.SESSION_LOCKED, "Session locked.");
     }
-    if (!isLocked) {
+    if (!locked) {
       userModel.touchSession(session.id);
     }
     return {
       userId: Number(payload.sub),
       sessionId: session.id,
-      locked: isLocked
+      locked
     };
   },
 

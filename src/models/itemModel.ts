@@ -48,6 +48,10 @@ type ItemRow = {
 export type SearchSort = "relevance" | "updatedAt" | "name";
 export type SearchSortBy = "relevance" | "name" | "type" | "updatedAt" | "size";
 export type SortOrder = "asc" | "desc";
+export type SearchItemRecord = {
+  item: ItemRecord;
+  score: number;
+};
 
 function mapRow(row: ItemRow): ItemRecord {
   return {
@@ -107,6 +111,86 @@ function sanitizeFtsQuery(raw: string): string {
     .filter(Boolean)
     .map((token) => `${token}*`);
   return tokens.join(" ");
+}
+
+function runSearchQuery(input: {
+  query?: string;
+  page: number;
+  pageSize: number;
+  type?: ItemType;
+  rootId?: string;
+  tag?: string;
+  sortBy: SearchSortBy;
+  order: SortOrder;
+}): { total: number; rows: Array<ItemRow & { score: number }> } {
+  const db = getDb();
+  const whereParts: string[] = ["i.deleted = 0"];
+  const args: Array<string | number> = [];
+  let fromClause = "items i";
+  let selectScore = "0.0 AS score";
+
+  const ftsQuery = input.query ? sanitizeFtsQuery(input.query) : "";
+  if (input.query && input.query.trim().length > 0 && !ftsQuery) {
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Invalid search query.");
+  }
+  if (ftsQuery) {
+    fromClause = "items_fts f JOIN items i ON i.rowid = f.rowid";
+    whereParts.push("items_fts MATCH ?");
+    args.push(ftsQuery);
+    selectScore = "bm25(items_fts) AS score";
+  }
+
+  if (input.type) {
+    whereParts.push("i.type = ?");
+    args.push(input.type);
+  }
+  if (input.rootId) {
+    whereParts.push("i.root_id = ?");
+    args.push(input.rootId);
+  }
+  if (input.tag) {
+    whereParts.push("i.tags LIKE ?");
+    args.push(`%\"${input.tag}\"%`);
+  }
+
+  const whereSql = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+  const direction = input.order === "asc" ? "ASC" : "DESC";
+  const orderBy =
+    input.sortBy === "name"
+      ? `i.title COLLATE NOCASE ${direction}`
+      : input.sortBy === "type"
+        ? `i.type COLLATE NOCASE ${direction}, i.title COLLATE NOCASE ASC`
+        : input.sortBy === "size"
+          ? `i.size ${direction}, i.title COLLATE NOCASE ASC`
+          : input.sortBy === "updatedAt"
+            ? `i.updated_at ${direction}, i.title COLLATE NOCASE ASC`
+            : ftsQuery
+              ? `score ${direction}, i.updated_at DESC`
+              : "i.updated_at DESC";
+  const offset = (input.page - 1) * input.pageSize;
+
+  try {
+    const totalRow = db
+      .prepare(`SELECT COUNT(*) AS total FROM ${fromClause} ${whereSql}`)
+      .get(...args) as { total: number };
+
+    const rows = db
+      .prepare(
+        `SELECT i.*, ${selectScore}
+         FROM ${fromClause}
+         ${whereSql}
+         ORDER BY ${orderBy}
+         LIMIT ? OFFSET ?`
+      )
+      .all(...args, input.pageSize, offset) as Array<ItemRow & { score: number }>;
+
+    return {
+      total: totalRow.total,
+      rows
+    };
+  } catch {
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Invalid search query syntax.");
+  }
 }
 
 export const itemModel = {
@@ -307,75 +391,30 @@ export const itemModel = {
     sortBy: SearchSortBy;
     order: SortOrder;
   }): { total: number; rows: ItemRecord[] } {
-    const db = getDb();
-    const whereParts: string[] = ["i.deleted = 0"];
-    const args: Array<string | number> = [];
-    let fromClause = "items i";
-    let selectScore = "0.0 AS score";
-
-    const ftsQuery = input.query ? sanitizeFtsQuery(input.query) : "";
-    if (input.query && input.query.trim().length > 0 && !ftsQuery) {
-      throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Invalid search query.");
-    }
-    if (ftsQuery) {
-      fromClause = "items_fts f JOIN items i ON i.rowid = f.rowid";
-      whereParts.push("items_fts MATCH ?");
-      args.push(ftsQuery);
-      selectScore = "bm25(items_fts) AS score";
-    }
-
-    if (input.type) {
-      whereParts.push("i.type = ?");
-      args.push(input.type);
-    }
-    if (input.rootId) {
-      whereParts.push("i.root_id = ?");
-      args.push(input.rootId);
-    }
-    if (input.tag) {
-      whereParts.push("i.tags LIKE ?");
-      args.push(`%\"${input.tag}\"%`);
-    }
-
-    const whereSql = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
-    const direction = input.order === "asc" ? "ASC" : "DESC";
-    const orderBy =
-      input.sortBy === "name"
-        ? `i.title COLLATE NOCASE ${direction}`
-        : input.sortBy === "type"
-          ? `i.type COLLATE NOCASE ${direction}, i.title COLLATE NOCASE ASC`
-          : input.sortBy === "size"
-            ? `i.size ${direction}, i.title COLLATE NOCASE ASC`
-            : input.sortBy === "updatedAt"
-              ? `i.updated_at ${direction}, i.title COLLATE NOCASE ASC`
-              : ftsQuery
-                ? `score ${direction}, i.updated_at DESC`
-                : "i.updated_at DESC";
-    const offset = (input.page - 1) * input.pageSize;
-
-    let totalRow: { total: number };
-    let rows: ItemRow[];
-    try {
-      totalRow = db
-        .prepare(`SELECT COUNT(*) AS total FROM ${fromClause} ${whereSql}`)
-        .get(...args) as { total: number };
-
-      rows = db
-        .prepare(
-          `SELECT i.*, ${selectScore}
-           FROM ${fromClause}
-           ${whereSql}
-           ORDER BY ${orderBy}
-           LIMIT ? OFFSET ?`
-        )
-        .all(...args, input.pageSize, offset) as ItemRow[];
-    } catch (error) {
-      throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Invalid search query syntax.");
-    }
-
+    const result = runSearchQuery(input);
     return {
-      total: totalRow.total,
-      rows: rows.map(mapRow)
+      total: result.total,
+      rows: result.rows.map(mapRow)
+    };
+  },
+
+  searchWithScore(input: {
+    query?: string;
+    page: number;
+    pageSize: number;
+    type?: ItemType;
+    rootId?: string;
+    tag?: string;
+    sortBy: SearchSortBy;
+    order: SortOrder;
+  }): { total: number; rows: SearchItemRecord[] } {
+    const result = runSearchQuery(input);
+    return {
+      total: result.total,
+      rows: result.rows.map((row) => ({
+        item: mapRow(row),
+        score: Number(row.score ?? 0)
+      }))
     };
   }
 };
