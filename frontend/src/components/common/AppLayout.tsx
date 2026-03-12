@@ -43,9 +43,9 @@ function Header() {
         <div className="flex items-center gap-8">
           <Link to="/" className="group flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 font-bold text-primary-foreground shadow-md shadow-primary/30 transition-all group-hover:scale-105 group-hover:shadow-primary/40 group-active:scale-95">
-              M
+              A
             </div>
-            <span className="hidden text-xl font-bold tracking-tight sm:block bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">本地资源库</span>
+            <span className="hidden text-xl font-bold tracking-tight sm:block bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">ArchiveDesk</span>
           </Link>
 
           <nav className="hidden gap-6 md:flex">
@@ -188,7 +188,7 @@ function Footer() {
   return (
     <footer className="mt-auto py-8">
       <div className="mx-auto flex max-w-[1800px] flex-col items-center justify-between gap-4 px-4 text-sm text-foreground/40 sm:flex-row sm:px-6 lg:px-8">
-        <p>© {new Date().getFullYear()} 本地资源库 M-Manager</p>
+        <p>© {new Date().getFullYear()} ArchiveDesk</p>
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse" />
           <span>服务运行中</span>

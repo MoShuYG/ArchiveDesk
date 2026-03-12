@@ -63,10 +63,10 @@ export function Login() {
             <KeyIcon className="h-8 w-8" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-            {showSetup ? '初始化管理员密码' : '欢迎使用'}
+            {showSetup ? '初始化 ArchiveDesk' : '欢迎使用 ArchiveDesk'}
           </h1>
           <p className="mt-2 text-sm text-foreground/70">
-            {showSetup ? '首次使用请先设置密码以保护资源。' : '输入密码登录本地资源管理器。'}
+            {showSetup ? '首次使用请先设置密码以保护 ArchiveDesk。' : '输入密码登录 ArchiveDesk。'}
           </p>
         </div>
 
