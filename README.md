@@ -64,7 +64,7 @@ ArchiveDesk，一个本地优先的数字档案管理工具，使用 `React` + `
 ### 📋 克隆
 
 ```bash
-git clone git@github.com:YOUR_USERNAME/ArchiveDesk.git
+git clone git@github.com:MoShuYG/ArchiveDesk.git
 ```
 
 ### 🏗️ 构建
