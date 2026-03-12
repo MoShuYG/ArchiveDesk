@@ -136,4 +136,4 @@ npm run lint          # 运行代码规范检查
 ## 📄 License
 
 This project is licensed under the **MIT License**.
-See the LICENSE [<sup>2</sup>](./LICENSE) file for details.
+See the  [LICENSE](./LICENSE) file for details.
