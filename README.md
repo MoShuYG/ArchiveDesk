@@ -2,10 +2,10 @@
 
 <!-- [![banner](_docs/img/banner.svg)](https://github.com/YOUR_USERNAME/ArchiveDesk) -->
 
-[![Release](https://img.shields.io/github/release/YOUR_USERNAME/ArchiveDesk.svg)](https://github.com/YOUR_USERNAME/ArchiveDesk/releases)
-[![Download](https://img.shields.io/github/downloads/YOUR_USERNAME/ArchiveDesk/total.svg)](https://github.com/YOUR_USERNAME/ArchiveDesk/releases)
-[![License](https://img.shields.io/github/license/YOUR_USERNAME/ArchiveDesk.svg)](https://github.com/YOUR_USERNAME/ArchiveDesk/master/LICENSE)
-[![Windows](https://img.shields.io/badge/platform-Windows-blue?logo=windows)](https://github.com/YOUR_USERNAME/ArchiveDesk/releases)
+[![Release](https://img.shields.io/github/release/YOUR_USERNAME/ArchiveDesk.svg)](https://github.com/MoShuYG/ArchiveDesk/releases)
+[![Download](https://img.shields.io/github/downloads/YOUR_USERNAME/ArchiveDesk/total.svg)](https://github.com/MoShuYG/ArchiveDesk/releases)
+[![License](https://img.shields.io/github/license/YOUR_USERNAME/ArchiveDesk.svg)](https://github.com/MoShuYG/ArchiveDesk/LICENSE)
+[![Windows](https://img.shields.io/badge/platform-Windows-blue?logo=windows)](https://github.com/MoShuYG/ArchiveDesk/releases)
 
 
 ## 🚀 简介
