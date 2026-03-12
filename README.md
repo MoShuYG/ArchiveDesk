@@ -1,109 +1,85 @@
 # ArchiveDesk
 
-ArchiveDesk 是一个面向 Windows 的本地优先数字档案管理器。
+<!-- [![banner](_docs/img/banner.svg)](https://github.com/YOUR_USERNAME/ArchiveDesk) -->
 
-它的目标很简单：  
-帮助你整理、扫描、搜索、预览和管理本地文件，重点面向图片、视频、音频、文本等长期保存的个人资料。
-
-**注：本代码均使用AI开发**
-
----
-
-## 这个项目解决什么问题
-
-很多人的本地文件都会慢慢变成这样：
-
-- 文件分散在很多文件夹里
-- 图片、视频、音频、文本混在一起
-- 想找一个旧文件时，经常记不清放在哪里
-- Windows 自带文件管理更适合“浏览文件”，不太适合“长期整理个人档案”
-
-ArchiveDesk 想做的事情是：
-
-**把本地文件从“堆着”变成“可整理、可搜索、可回看”。**
-
----
-
-## 核心功能
-
-当前项目重点在这些方向：
-
-- **本地库管理**：管理你自己的本地资源库
-- **文件扫描**：扫描指定目录，建立资源索引
-- **文件分类**：整理图片、视频、音频、文本等资源
-- **搜索**：更快找到需要的内容
-- **预览与外部打开**：支持查看内容，或用系统程序打开文件
-- **离线优先**：核心使用场景不依赖云端
-- **隐私优先**：重点服务本地个人数据，而不是上传到远端
-
----
-
-## 当前状态
-
-> **早期开发中**
-
-目前项目已经有基础的前后端结构，也已经包含这些模块：
-
-- 认证
-- 资源库管理
-- 扫描
-- 搜索
-- 历史记录
-- 条目查看
-
-但现在仍然是早期版本，所以请注意：
-
-- 功能还在持续调整
-- 界面和交互还会继续变化
-- 数据结构后续可能变化
-- 现在更适合体验、测试和一起打磨方向
-
----
+[![Release](https://img.shields.io/github/release/YOUR_USERNAME/ArchiveDesk.svg)](https://github.com/YOUR_USERNAME/ArchiveDesk/releases)
+[![Download](https://img.shields.io/github/downloads/YOUR_USERNAME/ArchiveDesk/total.svg)](https://github.com/YOUR_USERNAME/ArchiveDesk/releases)
+[![License](https://img.shields.io/github/license/YOUR_USERNAME/ArchiveDesk.svg)](https://github.com/YOUR_USERNAME/ArchiveDesk/blob/main/LICENSE)
+[![Windows](https://img.shields.io/badge/platform-Windows-blue?logo=windows)](https://github.com/YOUR_USERNAME/ArchiveDesk/releases)
 
 
-## 快速开始
+## 🚀 简介
 
-### 环境要求
+ArchiveDesk，一个本地优先的数字档案管理工具，使用 `React` + `Express` + `SQLite` 构建，面向 Windows 桌面环境。适用于长期整理和检索本地图片、视频、音频、文档等文件，支持离线工作流。
 
-建议准备：
+> ⚠️ 当前处于 **Alpha 阶段**（v0.1.0-alpha.1），功能仍在持续完善中。
 
-* Node.js
-* npm
-* Windows 10 / 11
+### ✨ 特性
 
----
+- 📁 创建和管理本地资源库
+- 🔍 目录扫描与索引
+- 🏷️ 关键词搜索
+- 📋 资源浏览与详情查看
+- 🚀 调用外部程序打开文件
+- 🔒 本地优先，离线优先
 
-### 1. 启动后端
+## ⬇️ 下载
 
-在项目根目录执行：
+<table>
+  <tbody>
+    <tr>
+      <td>🪟 Windows</td>
+      <td><code>ZIP</code></td>
+      <td>amd64</td>
+      <td><a href="https://github.com/YOUR_USERNAME/ArchiveDesk/releases">📥</a></td>
+    </tr>
+  </tbody>
+</table>
+
+从 [GitHub Releases](https://github.com/YOUR_USERNAME/ArchiveDesk/releases) 下载预览版压缩包，解压到本地目录，按压缩包内说明运行即可。
+
+如需从源码运行，请参考下方 [开发](#-开发) 部分。
+
+<!-- ## 🖼️ 界面预览 -->
+
+<!-- ![](_docs/img/ui-demo.png) -->
+
+## 🎯 适用场景
+
+| ✅ 适合 | ❌ 暂不适合 |
+|---------|------------|
+| 长期整理本地文件 | 多人协作 |
+| 个人数字档案管理 | 云同步场景 |
+| 本地优先、离线优先工作流 | 企业级权限与流程管理 |
+| Windows 桌面环境 | 成熟的媒体管理体验 |
+
+## 👨‍💻 开发
+
+### 🌍 环境要求
+
+1. Windows 10 / 11
+2. Node.js
+3. npm
+
+### 📋 克隆
+
+```bash
+git clone git@github.com:YOUR_USERNAME/ArchiveDesk.git
+```
+
+### 🏗️ 构建
+
+#### 后端
 
 ```bash
 npm install
-```
-
-复制环境变量文件：
-
-```bash
 cp .env.example .env
-```
-
-然后启动开发模式：
-
-```bash
 npm run dev
 ```
 
-默认后端地址：
+默认地址：`http://localhost:3000`
 
-```text
-http://localhost:3000
-```
-
----
-
-### 2. 启动前端
-
-进入前端目录：
+#### 前端
 
 ```bash
 cd frontend
@@ -111,117 +87,85 @@ npm install
 npm run dev
 ```
 
-默认前端地址：
+默认地址：`http://localhost:5173`
 
-```text
-http://localhost:5173
+### ⚙️ 配置
+
+参考根目录中的 `.env.example`，常用配置项：
+
+| 变量 | 说明 |
+|------|------|
+| `PORT` | 后端端口 |
+| `DB_PATH` | 数据库路径 |
+| `JWT_ACCESS_SECRET` | JWT Access Token 密钥 |
+| `JWT_REFRESH_SECRET` | JWT Refresh Token 密钥 |
+| `CORS_ORIGIN` | 跨域来源 |
+| `QUICKVIEWER_PATH` | 外部查看器路径 |
+
+### 🛠️ 技术栈
+
+| 模块 | 技术 |
+|------|------|
+| Frontend | React + Vite + TypeScript |
+| State | Zustand |
+| Backend | Express + TypeScript |
+| Database | SQLite |
+| Auth | JWT |
+
+### 📋 常用命令
+
+```bash
+# 根目录
+npm run dev          # 启动后端开发服务
+npm run build        # 构建
+npm test             # 测试
+npm run lint         # Lint 检查
+npm run release:check # 发版检查（后端构建、测试、前端 lint 与构建）
+
+# 前端目录
+cd frontend
+npm run dev          # 启动前端开发服务
+npm run build        # 构建前端
+npm run lint         # 前端 Lint 检查
 ```
 
----
+## 📝 路线图
 
-### 3. 开始使用
+### 近期
 
-启动后你可以：
+- 优化资源库管理流程
+- 提高目录扫描稳定性
+- 改进搜索与浏览体验
+- 补充截图和发行版资产
+- 整理文档与项目结构
 
-* 登录系统
-* 添加本地资源目录
-* 扫描文件
-* 浏览和搜索资源
-* 打开文件或查看详情
+### 中期
 
----
+- 更完整的元数据管理
+- 更好的预览与查看体验
+- 适合长期整理的交互流程
+- 更稳定的 Windows 本地桌面体验
 
-## 环境变量
+## ⚠️ 当前限制
 
-项目根目录提供了 `.env.example`，可以作为参考。
+- 项目结构仍在持续调整
+- 数据模型后续可能继续演化
+- 当前主要面向 Windows
+- 发行包形式还不是最终形态
+- 不同文件类型的高级体验仍在逐步补齐
 
-主要配置项：
+## 🤝 贡献
 
-* `NODE_ENV`：运行环境
-* `PORT`：后端端口，默认 `3000`
-* `DB_PATH`：SQLite 数据库路径
-* `JWT_ACCESS_SECRET`：访问令牌密钥
-* `JWT_REFRESH_SECRET`：刷新令牌密钥
-* `CORS_ORIGIN`：前端来源地址，默认 `http://localhost:5173`
-* `REQUIRE_HTTPS`：是否强制 HTTPS
-* `TRUST_PROXY`：代理配置
-* `QUICKVIEWER_PATH`：QuickViewer 路径，可选
+欢迎提交 Issue 和 Pull Request！当前比较适合参与的方向：
 
----
+- 🐛 Bug 反馈
+- 💻 Windows 实机使用反馈
+- 📖 文档改进
+- 🎨 UI 细节优化
+- 🧪 扫描、搜索和边界情况测试
 
-## 技术栈
+> 较大的改动建议先开 Issue 讨论。
 
-当前项目主要使用：
+## 📄 License
 
-* **Frontend**: React + Vite + TypeScript
-* **State Management**: Zustand
-* **Backend**: Express + TypeScript
-* **Database**: SQLite
-* **Auth**: JWT
-
----
-
-## 路线图
-
-### 近期目标
-
-* 完善资源库管理体验
-* 提升扫描与索引稳定性
-* 优化搜索和预览流程
-* 补齐基础文档
-* 增加更多测试
-
-### 中期目标
-
-* 更好的元数据整理能力
-* 更清晰的历史记录与回看体验
-* 更完善的文件预览能力
-* 更稳定的 Windows 本地工作流支持
-
-### 暂不作为当前重点
-
-* 云同步优先
-* 团队协作优先
-* 重度在线服务依赖
-
-ArchiveDesk 当前更关注的是：
-
-**本地优先、离线优先、长期个人使用体验。**
-
----
-
-## 贡献与反馈
-
-欢迎通过 Issue 提建议、报 Bug、讨论产品方向。
-
-当前尤其欢迎：
-
-* Bug 反馈
-* 文档改进
-* 小范围 UI / 交互优化建议
-* Windows 本地使用场景反馈
-* 扫描、搜索、预览相关问题反馈
-
-如果你准备提交 PR，建议先开 Issue 讨论方向。
-
----
-
-## 获取帮助
-
-如果你在使用或开发中遇到问题，可以：
-
-* 提交 GitHub Issue
-* 描述你的使用场景
-* 提供复现步骤
-* 附上截图、日志或报错信息
-
----
-
-
-## License
-
-This project is licensed under the **MIT License**.
-See the [LICENSE](./LICENSE) file for details.
-
-
-
+[MIT](LICENSE)
