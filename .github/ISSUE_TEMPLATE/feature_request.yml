@@ -1,0 +1,47 @@
+﻿name: 功能建议
+description: 为 ArchiveDesk 提一个改进建议
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 这个需求要解决什么问题？
+      description: 现在有什么不方便、太慢或缺失的地方？
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: 当前的替代方案
+      description: 你现在通常怎么处理？
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: 期望的行为或交互
+      description: 请描述你希望的效果
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 相关模块
+      description: 这个建议主要和哪个部分有关？
+      options:
+        - scanning
+        - search
+        - preview
+        - tags
+        - metadata
+        - library management
+        - UI
+        - UX
+        - other
+    validations:
+      required: true

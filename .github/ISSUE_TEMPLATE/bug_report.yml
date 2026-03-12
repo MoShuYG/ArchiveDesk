@@ -1,0 +1,60 @@
+﻿name: 缺陷报告
+description: 反馈一个 ArchiveDesk 的问题
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: input
+    id: windows_version
+    attributes:
+      label: Windows 版本
+      description: 例如 Windows 11 23H2
+      placeholder: Windows 11 23H2
+    validations:
+      required: true
+
+  - type: input
+    id: archivedesk_version
+    attributes:
+      label: ArchiveDesk 版本
+      description: 请填写你正在使用的版本
+      placeholder: v0.1.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: 复现步骤
+      description: 请按顺序写出复现方式
+      placeholder: |
+        1. 打开 ArchiveDesk
+        2. 进入 ...
+        3. 点击 ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_result
+    attributes:
+      label: 实际结果
+      description: 实际发生了什么？
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_result
+    attributes:
+      label: 预期结果
+      description: 你原本希望发生什么？
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs_or_screenshots
+    attributes:
+      label: 日志或截图
+      description: 如果方便，请粘贴日志或附上截图
+      render: shell
+    validations:
+      required: false
