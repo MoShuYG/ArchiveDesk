@@ -25,8 +25,11 @@ export function AppLayout() {
 }
 
 function Header() {
-  const { session, lock, logout } = useAuthStore();
-  const { theme, setTheme } = useThemeStore();
+  const session = useAuthStore((s) => s.session);
+  const lock = useAuthStore((s) => s.lock);
+  const logout = useAuthStore((s) => s.logout);
+  const theme = useThemeStore((s) => s.theme);
+  const setTheme = useThemeStore((s) => s.setTheme);
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 

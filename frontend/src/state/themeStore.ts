@@ -2,6 +2,10 @@ import { create } from 'zustand';
 
 type Theme = 'light' | 'dark' | 'system';
 
+let themeMediaQuery: MediaQueryList | null = null;
+let themeMediaListener: ((event: MediaQueryListEvent) => void) | null = null;
+let themeListenerBound = false;
+
 interface ThemeState {
     theme: Theme;
     setTheme: (theme: Theme) => void;
@@ -22,17 +26,19 @@ export const useThemeStore = create<ThemeState>((set) => ({
         set({ theme: savedTheme });
         applyTheme(savedTheme);
 
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            const currentTheme = localStorage.getItem('theme') as Theme || 'system';
+        if (themeListenerBound) {
+            return;
+        }
+
+        themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        themeMediaListener = () => {
+            const currentTheme = (localStorage.getItem('theme') as Theme) || 'system';
             if (currentTheme === 'system') {
-                if (e.matches) {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
+                applyTheme('system');
             }
-        });
+        };
+        themeMediaQuery.addEventListener('change', themeMediaListener);
+        themeListenerBound = true;
     },
 }));
 

@@ -1,11 +1,14 @@
 import fs from "fs/promises";
 import path from "path";
+import type { Request } from "express";
 import { AppError } from "../../errors/appError";
 import { ErrorCodes } from "../../errors/errorCodes";
 import { historyModel } from "../../models/historyModel";
 import { itemModel, ItemType } from "../../models/itemModel";
 import { libraryModel } from "../../models/libraryModel";
 import { folderCoverStore } from "../../services/folderCoverStore";
+import { getStreamFileResponseData, type StreamFileResponseData } from "../../services/fileStreamService";
+import { classifyItemTypeFromExt, isBrowserPreviewableExtension, isImageLikeExtension } from "../../services/fileSupportService";
 import { systemOpenService } from "../../services/systemOpenService";
 
 export type ExplorerSortBy = "name" | "type" | "updatedAt" | "size";
@@ -43,9 +46,7 @@ export type RootEntry = {
 };
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-const PREVIEWABLE_TEXT_EXT = new Set(["txt", "md", "json", "csv"]);
-const PREVIEWABLE_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "avif", "mp4", "webm", "mp3", "wav", "flac", "m4a", "aac", "ogg", "pdf", ...PREVIEWABLE_TEXT_EXT]);
-const IMAGE_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "avif"]);
+const COVER_IMAGE_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "avif"]);
 
 function normalizeComparablePath(targetPath: string): string {
   const normalized = path.resolve(targetPath);
@@ -115,10 +116,7 @@ function buildItemCoverUrl(itemId: string): string {
 }
 
 function isPreviewableByExt(ext: string | null | undefined): boolean {
-  if (!ext) {
-    return false;
-  }
-  return PREVIEWABLE_EXT.has(ext.toLowerCase());
+  return isBrowserPreviewableExtension(ext);
 }
 
 async function resolveFolderCover(rootId: string, folderAbsolutePath: string, relPath: string): Promise<{
@@ -145,7 +143,7 @@ async function resolveFolderCover(rootId: string, folderAbsolutePath: string, re
     const imageFileNames = entries
       .filter((item) => item.isFile())
       .map((item) => item.name)
-      .filter((name) => IMAGE_EXT.has(path.extname(name).replace(".", "").toLowerCase()))
+      .filter((name) => COVER_IMAGE_EXT.has(path.extname(name).replace(".", "").toLowerCase()))
       .sort((a, b) => collator.compare(a, b));
     for (const fileName of imageFileNames) {
       const absPath = path.join(folderAbsolutePath, fileName);
@@ -205,20 +203,6 @@ function compareRootEntries(a: RootEntry, b: RootEntry, sortBy: "name" | "update
     return cmp * direction;
   }
   return collator.compare(a.name, b.name) * direction;
-}
-
-function classifyItemTypeFromExt(ext: string | null): ItemType {
-  if (!ext) {
-    return "other";
-  }
-  const lowered = ext.toLowerCase();
-  if (["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "avif"].includes(lowered)) return "image";
-  if (["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm"].includes(lowered)) return "video";
-  if (["mp3", "wav", "flac", "m4a", "aac", "ogg"].includes(lowered)) return "audio";
-  if (["txt", "md", "epub", "pdf"].includes(lowered)) return "novel";
-  if (["cbz", "cbr"].includes(lowered)) return "booklet";
-  if (["pt", "pth", "safetensors", "onnx"].includes(lowered)) return "voice";
-  return "other";
 }
 
 export const explorerService = {
@@ -322,12 +306,48 @@ export const explorerService = {
     const relPath = normalizeRelPath(input.relPath);
     const absolutePath = resolvePathWithinRoot(root.path, relPath);
     const ext = path.extname(absolutePath).replace(".", "").toLowerCase() || null;
-    const preferQuickViewer = Boolean(ext && IMAGE_EXT.has(ext));
+    const preferQuickViewer = isImageLikeExtension(ext);
     const result = await systemOpenService.openPath(absolutePath, { preferQuickViewer });
     const item = itemModel.getItemByPath(absolutePath);
     if (item && !item.deleted) {
       historyModel.recordView(item.id);
     }
     return result;
+  },
+
+  async getEntryFileResponseData(
+    input: { rootId: string; relPath: string },
+    req: Request
+  ): Promise<StreamFileResponseData> {
+    const root = findRootOrThrow(input.rootId);
+    const relPath = normalizeRelPath(input.relPath);
+    const absolutePath = resolvePathWithinRoot(root.path, relPath);
+    return getStreamFileResponseData(absolutePath, req, {
+      displayName: path.basename(absolutePath),
+      allowedExtensions: new Set([
+        "png",
+        "jpg",
+        "jpeg",
+        "gif",
+        "webp",
+        "bmp",
+        "pdf",
+        "txt",
+        "md",
+        "json",
+        "csv",
+        "mp3",
+        "mp4",
+        "webm",
+        "wav",
+        "flac",
+        "ogg",
+        "avif",
+        "m4a",
+        "aac"
+      ]),
+      unsupportedMessage: "Browser preview is not supported for this file type.",
+      notFoundMessage: "Preview file not found."
+    });
   }
 };

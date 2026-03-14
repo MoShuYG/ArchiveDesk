@@ -25,7 +25,11 @@ export const libraryService = {
     });
     searchService.invalidateFolderIndex(created.id);
     scanJobService.refreshWatchers();
-    return created;
+    const scanTask = scanJobService.enqueue("full");
+    return {
+      ...created,
+      scanTaskId: scanTask.id
+    };
   },
 
   async updateRoot(rootId: string, input: { name?: string; path?: string }) {
@@ -55,6 +59,13 @@ export const libraryService = {
     }
     searchService.invalidateFolderIndex(rootId);
     scanJobService.refreshWatchers();
+    if (input.path && targetNormalized !== existingRoot.normalizedPath) {
+      const scanTask = scanJobService.enqueue("full");
+      return {
+        ...updated,
+        scanTaskId: scanTask.id
+      };
+    }
     return updated;
   },
 

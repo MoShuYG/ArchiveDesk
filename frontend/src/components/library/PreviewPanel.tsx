@@ -10,13 +10,14 @@ type PreviewPanelProps = {
   path?: string;
   type?: ItemType;
   size?: number;
+  ext?: string | null;
   emptyText?: string;
 };
 
-export function PreviewPanel({ itemId, title, path, type, size, emptyText = '请选择一个文件进行预览。' }: PreviewPanelProps) {
+export function PreviewPanel({ itemId, title, path, type, size, ext, emptyText = 'Please select a file to preview.' }: PreviewPanelProps) {
   const [openError, setOpenError] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
-  const preview = useFilePreview({ itemId, type, size });
+  const preview = useFilePreview({ itemId, type, size, ext });
 
   async function openExternal() {
     if (!itemId) return;
@@ -25,7 +26,7 @@ export function PreviewPanel({ itemId, title, path, type, size, emptyText = '请
     try {
       await itemService.openItemExternally(itemId);
     } catch (error) {
-      setOpenError(error instanceof Error ? error.message : '打开失败');
+      setOpenError(error instanceof Error ? error.message : 'Failed to open file.');
     } finally {
       setOpening(false);
     }
@@ -35,7 +36,7 @@ export function PreviewPanel({ itemId, title, path, type, size, emptyText = '请
     <section className="flex h-full min-h-[380px] flex-col rounded-xl border border-border bg-card">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground">{title ?? '预览'}</p>
+          <p className="truncate text-sm font-semibold text-foreground">{title ?? 'Preview'}</p>
           {path ? <p className="truncate text-xs text-muted-foreground">{path}</p> : null}
         </div>
         {itemId ? (
@@ -46,15 +47,15 @@ export function PreviewPanel({ itemId, title, path, type, size, emptyText = '请
             className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-secondary disabled:opacity-50"
           >
             <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" />
-            {opening ? '打开中...' : '在 Windows 中打开'}
+            {opening ? 'Opening...' : 'Open in Windows'}
           </button>
         ) : null}
       </header>
 
       <div className="flex flex-1 items-center justify-center p-4">
         {!itemId ? <Empty text={emptyText} /> : null}
-        {itemId && preview.isLoading ? <Empty text="正在加载预览..." /> : null}
-        {itemId && preview.tooLarge ? <Empty text="文件过大，不适合浏览器预览。请双击在 Windows 中打开。" /> : null}
+        {itemId && preview.isLoading ? <Empty text="Loading preview..." /> : null}
+        {itemId && preview.tooLarge ? <Empty text="This file is too large for browser preview. Open it in Windows instead." /> : null}
         {itemId && preview.error ? <Empty text={preview.error} /> : null}
         {itemId && !preview.isLoading && !preview.error && !preview.tooLarge ? (
           <div className="flex h-full w-full items-center justify-center">
@@ -67,7 +68,7 @@ export function PreviewPanel({ itemId, title, path, type, size, emptyText = '请
                 {preview.text ?? ''}
               </pre>
             ) : null}
-            {preview.mode === 'unsupported' ? <Empty text="当前文件类型暂不支持预览。" /> : null}
+            {preview.mode === 'unsupported' ? <Empty text="Browser preview is not supported for this file type." /> : null}
           </div>
         ) : null}
       </div>
@@ -85,4 +86,3 @@ function Empty({ text }: { text: string }) {
     </div>
   );
 }
-

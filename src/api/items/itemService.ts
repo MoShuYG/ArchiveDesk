@@ -1,45 +1,12 @@
 import fs from "fs";
-import fsp from "fs/promises";
-import path from "path";
 import { spawn } from "child_process";
 import type { Request } from "express";
 import { AppError } from "../../errors/appError";
 import { ErrorCodes } from "../../errors/errorCodes";
 import { historyModel } from "../../models/historyModel";
 import { itemModel, type ItemRecord } from "../../models/itemModel";
+import { ensureRegularFile, getStreamFileResponseData } from "../../services/fileStreamService";
 import { systemOpenService } from "../../services/systemOpenService";
-
-const MIME_BY_EXT: Record<string, string> = {
-  txt: "text/plain; charset=utf-8",
-  md: "text/markdown; charset=utf-8",
-  json: "application/json; charset=utf-8",
-  csv: "text/csv; charset=utf-8",
-  yaml: "application/x-yaml; charset=utf-8",
-  yml: "application/x-yaml; charset=utf-8",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  gif: "image/gif",
-  webp: "image/webp",
-  bmp: "image/bmp",
-  tiff: "image/tiff",
-  avif: "image/avif",
-  mp4: "video/mp4",
-  mkv: "video/x-matroska",
-  avi: "video/x-msvideo",
-  mov: "video/quicktime",
-  webm: "video/webm",
-  mp3: "audio/mpeg",
-  wav: "audio/wav",
-  flac: "audio/flac",
-  m4a: "audio/mp4",
-  aac: "audio/aac",
-  ogg: "audio/ogg",
-  pdf: "application/pdf",
-  epub: "application/epub+zip",
-  cbz: "application/zip",
-  cbr: "application/vnd.rar"
-};
 
 const THUMB_CACHE_TTL_MS = 5 * 60 * 1000;
 const THUMB_CACHE_MAX = 300;
@@ -84,59 +51,6 @@ function getCachedThumbnail(key: string): { buffer: Buffer; contentType: string 
     buffer: cached.buffer,
     contentType: cached.contentType
   };
-}
-
-function detectMimeType(item: ItemRecord): string {
-  const ext = (item.ext ?? path.extname(item.path).replace(".", "")).toLowerCase();
-  return MIME_BY_EXT[ext] ?? "application/octet-stream";
-}
-
-function getRangeBounds(rangeHeader: string, fileSize: number): { start: number; end: number } | null {
-  const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
-  if (!match) {
-    return null;
-  }
-  const startText = match[1];
-  const endText = match[2];
-  let start: number;
-  let end: number;
-
-  if (startText === "" && endText === "") {
-    return null;
-  }
-  if (startText === "") {
-    const suffix = Number(endText);
-    if (!Number.isFinite(suffix) || suffix <= 0) {
-      return null;
-    }
-    start = Math.max(fileSize - suffix, 0);
-    end = fileSize - 1;
-    return { start, end };
-  }
-
-  start = Number(startText);
-  if (!Number.isFinite(start) || start < 0 || start >= fileSize) {
-    return null;
-  }
-
-  if (endText === "") {
-    end = fileSize - 1;
-  } else {
-    end = Number(endText);
-    if (!Number.isFinite(end) || end < start) {
-      return null;
-    }
-  }
-  end = Math.min(end, fileSize - 1);
-  return { start, end };
-}
-
-async function ensureItemFile(item: ItemRecord): Promise<fs.Stats> {
-  try {
-    return await fsp.stat(item.path);
-  } catch {
-    throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, "Item file not found on disk.");
-  }
 }
 
 async function buildThumbnail(item: ItemRecord): Promise<{ buffer: Buffer; contentType: string } | null> {
@@ -259,21 +173,19 @@ export const itemService = {
     range: { start: number; end: number } | null;
   }> {
     const item = this.getItemById(itemId);
-    const stat = await ensureItemFile(item);
-    if (!stat.isFile()) {
-      throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, "Item path is not a file.");
-    }
-    const mimeType = detectMimeType(item);
-    const rangeHeader = req.header("range");
-    const range = rangeHeader ? getRangeBounds(rangeHeader, stat.size) : null;
-    if (rangeHeader && !range) {
-      throw new AppError(416, ErrorCodes.VALIDATION_ERROR, "Invalid Range header.");
-    }
-    return { item, stat, mimeType, range };
+    const file = await getStreamFileResponseData(item.path, req, {
+      displayName: `${item.title}${item.ext ? `.${item.ext}` : ""}`,
+      ext: item.ext,
+      notFoundMessage: "Item file not found on disk."
+    });
+    return { item, stat: file.stat, mimeType: file.mimeType, range: file.range };
   },
 
   async getThumbnailDataByItem(item: ItemRecord): Promise<{ buffer: Buffer; contentType: string } | null> {
-    const stat = await ensureItemFile(item);
+    const { stat } = await ensureRegularFile(item.path, {
+      notFound: "Item file not found on disk.",
+      invalidType: "Item path is not a file."
+    });
     if (!stat.isFile()) {
       throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, "Item path is not a file.");
     }

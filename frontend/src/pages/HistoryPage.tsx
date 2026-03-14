@@ -39,7 +39,10 @@ const TYPE_ICONS: Record<ItemType, typeof DocumentIcon> = {
 };
 
 function HistoryEntryThumb({ entry }: { entry: HistoryEntry }) {
-  const thumbnailUrl = (entry.item.type === 'image' || entry.item.type === 'video') && entry.item.id ? `/api/items/${entry.item.id}/thumbnail` : null;
+  const thumbnailUrl =
+    (entry.item.type === 'image' || entry.item.type === 'video') && entry.item.id && entry.item.ext !== 'tga'
+      ? `/api/items/${entry.item.id}/thumbnail`
+      : null;
   const { src, isLoading } = useAuthenticatedImage(thumbnailUrl);
   const Icon = TYPE_ICONS[entry.item.type];
 
@@ -70,7 +73,7 @@ export function HistoryPage() {
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<{ itemId: string; title: string; path: string; type: ItemType } | null>(null);
+  const [preview, setPreview] = useState<{ itemId: string; title: string; path: string; type: ItemType; ext?: string | null } | null>(null);
   const [previewSize, setPreviewSize] = useState<number | undefined>(undefined);
   const [openError, setOpenError] = useState<string | null>(null);
 
@@ -243,6 +246,7 @@ export function HistoryPage() {
                     title: entry.item.title,
                     path: entry.item.path,
                     type: entry.item.type,
+                    ext: entry.item.ext,
                   });
                 }}
                 onDoubleClick={() => void openInWindows(entry)}
@@ -275,6 +279,7 @@ export function HistoryPage() {
         path={preview?.path}
         type={preview?.type}
         size={previewSize}
+        ext={preview?.ext}
       />
     </div>
   );

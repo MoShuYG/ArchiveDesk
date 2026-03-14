@@ -1,7 +1,9 @@
+import fs from "fs";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { validateSchema } from "../utils/validationUtils";
 import { explorerService } from "./explorerService";
+import { buildInlineContentDisposition } from "../../services/fileStreamService";
 
 const listRootEntriesQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -29,6 +31,10 @@ const listEntriesQuerySchema = z.object({
 });
 
 const openEntryBodySchema = z.object({
+  relPath: z.string().min(1)
+});
+
+const entryFileQuerySchema = z.object({
   relPath: z.string().min(1)
 });
 
@@ -65,5 +71,34 @@ export const explorerController = {
       relPath: body.relPath
     });
     res.status(200).json(response);
+  },
+
+  async streamEntryFile(req: Request, res: Response): Promise<void> {
+    const query = validateSchema(entryFileQuerySchema, req.query);
+    const file = await explorerService.getEntryFileResponseData(
+      {
+        rootId: req.params.rootId,
+        relPath: query.relPath
+      },
+      req
+    );
+
+    res.setHeader("Accept-Ranges", "bytes");
+    res.setHeader("Content-Type", file.mimeType);
+    res.setHeader("Content-Disposition", buildInlineContentDisposition(file.displayName));
+
+    if (file.range) {
+      const { start, end } = file.range;
+      const chunkSize = end - start + 1;
+      res.status(206);
+      res.setHeader("Content-Range", `bytes ${start}-${end}/${file.stat.size}`);
+      res.setHeader("Content-Length", String(chunkSize));
+      fs.createReadStream(file.filePath, { start, end }).pipe(res);
+      return;
+    }
+
+    res.status(200);
+    res.setHeader("Content-Length", String(file.stat.size));
+    fs.createReadStream(file.filePath).pipe(res);
   }
 };

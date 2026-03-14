@@ -11,7 +11,12 @@ import { validatePassword } from '../../utils/validation';
 
 export function Login() {
   const navigate = useNavigate();
-  const { login, setupPassword, isLoading, error, needsSetup, clearError } = useAuthStore();
+  const login = useAuthStore((s) => s.login);
+  const setupPassword = useAuthStore((s) => s.setupPassword);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const error = useAuthStore((s) => s.error);
+  const needsSetup = useAuthStore((s) => s.needsSetup);
+  const clearError = useAuthStore((s) => s.clearError);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');

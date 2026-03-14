@@ -1,3 +1,7 @@
+param(
+    [string]$Version = "0.1.0-alpha.2"
+)
+
 $ErrorActionPreference = "Stop"
 
 function Copy-Directory {
@@ -16,13 +20,15 @@ function Copy-Directory {
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$releaseName = "ArchiveDesk-v0.1.0-alpha.1-win-preview"
+$releaseName = "ArchiveDesk-v$Version-win-preview"
 $releaseRoot = Join-Path $repoRoot "release"
 $stagingDir = Join-Path $releaseRoot $releaseName
+$zipPath = Join-Path $releaseRoot "$releaseName.zip"
 $quickStartPath = Join-Path $stagingDir "QUICKSTART.txt"
 $startBatPath = Join-Path $stagingDir "start.bat"
 $nodeModulesPath = Join-Path $repoRoot "node_modules"
 $betterSqliteBinary = Join-Path $repoRoot "node_modules\better-sqlite3\build\Release\better_sqlite3.node"
+$repoQuickStartPath = Join-Path $repoRoot "QUICKSTART.txt"
 
 $requiredPaths = @(
     (Join-Path $repoRoot "dist"),
@@ -32,6 +38,7 @@ $requiredPaths = @(
     (Join-Path $repoRoot "package.json"),
     (Join-Path $repoRoot "package-lock.json"),
     (Join-Path $repoRoot ".env.example"),
+    (Join-Path $repoRoot "README.md"),
     (Join-Path $repoRoot "LICENSE")
 )
 
@@ -44,6 +51,9 @@ foreach ($path in $requiredPaths) {
 if (Test-Path -LiteralPath $stagingDir) {
     Remove-Item -LiteralPath $stagingDir -Recurse -Force
 }
+if (Test-Path -LiteralPath $zipPath) {
+    Remove-Item -LiteralPath $zipPath -Force
+}
 
 New-Item -ItemType Directory -Path $releaseRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
@@ -54,6 +64,7 @@ Copy-Directory -Source (Join-Path $repoRoot "frontend\dist") -Destination (Join-
 Copy-Item -LiteralPath (Join-Path $repoRoot "package.json") -Destination $stagingDir
 Copy-Item -LiteralPath (Join-Path $repoRoot "package-lock.json") -Destination $stagingDir
 Copy-Item -LiteralPath (Join-Path $repoRoot ".env.example") -Destination $stagingDir
+Copy-Item -LiteralPath (Join-Path $repoRoot "README.md") -Destination $stagingDir
 Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination $stagingDir
 
 # Copy the already-working local install first so native modules do not need to rebuild in staging.
@@ -93,11 +104,40 @@ if not "%EXIT_CODE%"=="0" (
 exit /b %EXIT_CODE%
 '@
 
-$quickStartBase64 = "QXJjaGl2ZURlc2sgdjAuMS4wLWFscGhhLjEgV2luZG93cyDpooTop4jniYgKCui/meaYr+S4gOS4quaXqeacn+mihOiniOeJiOacrOOAggoK6K+35Y+M5Ye7IHN0YXJ0LmJhdCDlkK/liqjvvIzlubbnrYnlvoXlh6Dnp5Lpkp/lrozmiJDlkK/liqjjgIIKCuWmguaenOa1j+iniOWZqOayoeacieiHquWKqOaJk+W8gO+8jOivt+iuv+mXru+8mgpodHRwOi8vbG9jYWxob3N0OjMwMDAKCuatpOacrOWcsOmihOiniOW3suemgeeUqCBSRVFVSVJFX0hUVFBT44CCCgrlpoLmnpwgMzAwMCDnq6/lj6Plt7LooqvljaDnlKjvvIzlkK/liqjlj6/og73kvJrlpLHotKXjgIIKCkFyY2hpdmVEZXNrIHYwLjEuMC1hbHBoYS4xIFdpbmRvd3MgUHJldmlldwoKVGhpcyBpcyBhbiBlYXJseSBwcmV2aWV3IHJlbGVhc2UuCgpUbyBzdGFydCBBcmNoaXZlRGVzaywgZG91YmxlLWNsaWNrIHN0YXJ0LmJhdCBhbmQgd2FpdCBhIGZldyBzZWNvbmRzLgoKSWYgdGhlIGJyb3dzZXIgZG9lcyBub3Qgb3BlbiBhdXRvbWF0aWNhbGx5LCB2aXNpdDoKaHR0cDovL2xvY2FsaG9zdDozMDAwCgpSRVFVSVJFX0hUVFBTIGlzIGRpc2FibGVkIGZvciB0aGlzIGxvY2FsIHByZXZpZXcuCgpJZiBwb3J0IDMwMDAgaXMgYWxyZWFkeSBpbiB1c2UsIHN0YXJ0dXAgbWF5IGZhaWwu"
-$quickStart = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($quickStartBase64))
+$generatedQuickStart = @"
+ArchiveDesk v$Version Windows 预览版
+
+这是一个早期预览版本。
+
+请双击 start.bat 启动，并等待几秒钟完成初始化。
+
+如果浏览器没有自动打开，请访问：
+http://localhost:3000
+
+此预览包默认关闭 REQUIRE_HTTPS，方便本地运行。
+
+如果端口 3000 已被占用，启动可能会失败。
+
+ArchiveDesk v$Version Windows Preview
+
+This is an early preview release.
+
+To start ArchiveDesk, double-click start.bat and wait a few seconds.
+
+If the browser does not open automatically, visit:
+http://localhost:3000
+
+REQUIRE_HTTPS is disabled for this local preview.
+
+If port 3000 is already in use, startup may fail.
+"@
 
 Set-Content -LiteralPath $startBatPath -Value $startBat -Encoding ASCII
-[System.IO.File]::WriteAllText($quickStartPath, $quickStart, [System.Text.UTF8Encoding]::new($true))
+if (Test-Path -LiteralPath $repoQuickStartPath) {
+    Copy-Item -LiteralPath $repoQuickStartPath -Destination $quickStartPath
+} else {
+    [System.IO.File]::WriteAllText($quickStartPath, $generatedQuickStart, [System.Text.UTF8Encoding]::new($true))
+}
 
 $npmCmd = Get-Command npm.cmd -ErrorAction SilentlyContinue
 if (-not $npmCmd) {
@@ -115,4 +155,7 @@ finally {
     Pop-Location
 }
 
+Compress-Archive -Path (Join-Path $stagingDir "*") -DestinationPath $zipPath -Force
+
 Write-Host "Release staging prepared at: $stagingDir"
+Write-Host "Release zip created at: $zipPath"

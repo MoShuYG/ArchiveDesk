@@ -2,10 +2,11 @@ import { FSWatcher, watch } from "fs";
 import fsp from "fs/promises";
 import path from "path";
 import { libraryModel } from "../models/libraryModel";
-import { itemModel, ItemType } from "../models/itemModel";
+import { itemModel } from "../models/itemModel";
 import { scanModel, ScanTaskRecord, ScanTaskType } from "../models/scanModel";
 import { extractMetadata, extractTextContent } from "./metadata/metadataService";
 import { searchService } from "../api/search/searchService";
+import { classifyItemTypeFromExt } from "./fileSupportService";
 
 type MutableProgress = {
   totalFiles: number;
@@ -15,36 +16,6 @@ type MutableProgress = {
   deletedFiles: number;
   warnings: string[];
 };
-
-const VIDEO_EXT = new Set(["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm"]);
-const AUDIO_EXT = new Set(["mp3", "wav", "flac", "m4a", "aac", "ogg"]);
-const IMAGE_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "avif"]);
-const NOVEL_EXT = new Set(["txt", "md", "epub", "pdf"]);
-const BOOKLET_EXT = new Set(["cbz", "cbr"]);
-const VOICE_EXT = new Set(["pt", "pth", "safetensors", "onnx"]);
-
-function classifyItemType(ext: string): ItemType {
-  const normalized = ext.toLowerCase();
-  if (VIDEO_EXT.has(normalized)) {
-    return "video";
-  }
-  if (AUDIO_EXT.has(normalized)) {
-    return "audio";
-  }
-  if (IMAGE_EXT.has(normalized)) {
-    return "image";
-  }
-  if (NOVEL_EXT.has(normalized)) {
-    return "novel";
-  }
-  if (BOOKLET_EXT.has(normalized)) {
-    return "booklet";
-  }
-  if (VOICE_EXT.has(normalized)) {
-    return "voice";
-  }
-  return "other";
-}
 
 async function walkFiles(dirPath: string, files: string[]): Promise<void> {
   const entries = await fsp.readdir(dirPath, { withFileTypes: true });
@@ -73,7 +44,7 @@ async function scanRoot(rootId: string, rootPath: string, progress: MutableProgr
   for (const filePath of files) {
     const stat = await fsp.stat(filePath);
     const ext = path.extname(filePath).replace(".", "").toLowerCase() || null;
-    const itemType = classifyItemType(ext ?? "");
+    const itemType = classifyItemTypeFromExt(ext);
     const title = path.basename(filePath, path.extname(filePath));
     const inode = stat.ino ? String(stat.ino) : null;
     const existing = snapshots.get(filePath);

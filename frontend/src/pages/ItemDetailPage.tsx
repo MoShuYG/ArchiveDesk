@@ -89,7 +89,7 @@ export function ItemDetailPage() {
         </button>
 
         <section className="relative flex min-h-[420px] overflow-hidden rounded-2xl border border-border bg-black/5 shadow-inner dark:bg-black/40">
-          <PreviewPanel itemId={item.id} title={item.title} path={item.path} type={item.type} size={item.size} />
+          <PreviewPanel itemId={item.id} title={item.title} path={item.path} type={item.type} size={item.size} ext={item.ext} />
         </section>
       </div>
 

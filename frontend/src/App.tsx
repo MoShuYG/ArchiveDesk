@@ -11,7 +11,7 @@ function App() {
   useEffect(() => {
     initTheme();
     checkSession();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [checkSession, initTheme]);
 
   return <RouterProvider router={router} />;
 }

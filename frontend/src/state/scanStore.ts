@@ -4,84 +4,100 @@ import { scanService } from '../services/scanService';
 import { ApiRequestError } from '../services/apiService';
 
 interface ScanState {
-    currentTask: ScanTask | null;
-    isScanning: boolean;
-    error: string | null;
-    _pollTimer: ReturnType<typeof setInterval> | null;
+  currentTask: ScanTask | null;
+  isScanning: boolean;
+  error: string | null;
+  _pollTimer: ReturnType<typeof setInterval> | null;
 
-    startFullScan: () => Promise<void>;
-    startIncrementalScan: () => Promise<void>;
-    pollTask: (taskId: string) => void;
-    stopPolling: () => void;
-    clearError: () => void;
+  startFullScan: () => Promise<void>;
+  startIncrementalScan: () => Promise<void>;
+  trackTask: (taskId: string) => Promise<void>;
+  pollTask: (taskId: string) => void;
+  stopPolling: () => void;
+  clearError: () => void;
 }
 
 const POLL_INTERVAL = 2000;
 
 export const useScanStore = create<ScanState>((set, get) => ({
-    currentTask: null,
-    isScanning: false,
-    error: null,
-    _pollTimer: null,
+  currentTask: null,
+  isScanning: false,
+  error: null,
+  _pollTimer: null,
 
-    async startFullScan() {
-        set({ isScanning: true, error: null });
-        try {
-            const enqueued = await scanService.startFullScan();
-            const task = await scanService.getTask(enqueued.taskId);
-            set({ currentTask: task });
-            get().pollTask(enqueued.taskId);
-        } catch (err) {
-            const message = err instanceof ApiRequestError ? err.message : '启动全量扫描失败';
-            set({ isScanning: false, error: message });
-        }
-    },
+  async startFullScan() {
+    try {
+      const enqueued = await scanService.startFullScan();
+      await get().trackTask(enqueued.taskId);
+    } catch (err) {
+      const message = err instanceof ApiRequestError ? err.message : 'Failed to start full scan.';
+      set({ isScanning: false, error: message });
+    }
+  },
 
-    async startIncrementalScan() {
-        set({ isScanning: true, error: null });
-        try {
-            const enqueued = await scanService.startIncrementalScan();
-            const task = await scanService.getTask(enqueued.taskId);
-            set({ currentTask: task });
-            get().pollTask(enqueued.taskId);
-        } catch (err) {
-            const message = err instanceof ApiRequestError ? err.message : '启动增量扫描失败';
-            set({ isScanning: false, error: message });
-        }
-    },
+  async startIncrementalScan() {
+    try {
+      const enqueued = await scanService.startIncrementalScan();
+      await get().trackTask(enqueued.taskId);
+    } catch (err) {
+      const message = err instanceof ApiRequestError ? err.message : 'Failed to start incremental scan.';
+      set({ isScanning: false, error: message });
+    }
+  },
 
-    pollTask(taskId: string) {
+  async trackTask(taskId: string) {
+    set({ isScanning: true, error: null });
+    try {
+      const task = await scanService.getTask(taskId);
+      set({
+        currentTask: task,
+        isScanning: task.status === 'queued' || task.status === 'running',
+      });
+      if (task.status === 'success' || task.status === 'failed' || task.status === 'canceled') {
         get().stopPolling();
+        return;
+      }
+      get().pollTask(taskId);
+    } catch (err) {
+      const message = err instanceof ApiRequestError ? err.message : 'Failed to load scan status.';
+      set({ isScanning: false, error: message });
+      throw err;
+    }
+  },
 
-        const timer = setInterval(async () => {
-            try {
-                const task = await scanService.getTask(taskId);
-                set({ currentTask: task });
+  pollTask(taskId: string) {
+    get().stopPolling();
+    set({ isScanning: true });
 
-                if (task.status === 'success' || task.status === 'failed' || task.status === 'canceled') {
-                    get().stopPolling();
-                    set({ isScanning: false });
-                }
-            } catch (err) {
-                const message = err instanceof ApiRequestError ? err.message : '获取扫描状态失败';
-                set({ error: message });
-                get().stopPolling();
-                set({ isScanning: false });
-            }
-        }, POLL_INTERVAL);
+    const timer = setInterval(async () => {
+      try {
+        const task = await scanService.getTask(taskId);
+        set({ currentTask: task });
 
-        set({ _pollTimer: timer });
-    },
-
-    stopPolling() {
-        const timer = get()._pollTimer;
-        if (timer) {
-            clearInterval(timer);
-            set({ _pollTimer: null });
+        if (task.status === 'success' || task.status === 'failed' || task.status === 'canceled') {
+          get().stopPolling();
+          set({ isScanning: false });
         }
-    },
+      } catch (err) {
+        const message = err instanceof ApiRequestError ? err.message : 'Failed to load scan status.';
+        set({ error: message });
+        get().stopPolling();
+        set({ isScanning: false });
+      }
+    }, POLL_INTERVAL);
 
-    clearError() {
-        set({ error: null });
-    },
+    set({ _pollTimer: timer });
+  },
+
+  stopPolling() {
+    const timer = get()._pollTimer;
+    if (timer) {
+      clearInterval(timer);
+      set({ _pollTimer: null });
+    }
+  },
+
+  clearError() {
+    set({ error: null });
+  },
 }));

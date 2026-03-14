@@ -14,6 +14,7 @@ import {
 import { Modal } from '../components/common/Modal';
 import { ScanProgress } from '../components/scan/ScanProgress';
 import { useLibraryStore } from '../state/libraryStore';
+import { useScanStore } from '../state/scanStore';
 import type {
   CoverBrowserEntry,
   CoverBrowserSortBy,
@@ -68,7 +69,14 @@ function RootFolderThumb({ className = 'h-32 w-full' }: { className?: string }) 
 }
 
 export function LibraryManagePage() {
-  const { roots, isLoading, error, fetchRoots, addRoot, updateRoot, removeRoot } = useLibraryStore();
+  const roots = useLibraryStore((s) => s.roots);
+  const isLoading = useLibraryStore((s) => s.isLoading);
+  const error = useLibraryStore((s) => s.error);
+  const fetchRoots = useLibraryStore((s) => s.fetchRoots);
+  const addRoot = useLibraryStore((s) => s.addRoot);
+  const updateRoot = useLibraryStore((s) => s.updateRoot);
+  const removeRoot = useLibraryStore((s) => s.removeRoot);
+  const trackTask = useScanStore((s) => s.trackTask);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -87,6 +95,7 @@ export function LibraryManagePage() {
   const [loadingParents, setLoadingParents] = useState<string[]>([]);
   const [folderError, setFolderError] = useState<string | null>(null);
   const [folderActionTarget, setFolderActionTarget] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
   const [candidateModalNode, setCandidateModalNode] = useState<FolderNode | null>(null);
   const [candidateRelPath, setCandidateRelPath] = useState('');
@@ -125,6 +134,7 @@ export function LibraryManagePage() {
     setName('');
     setPath('');
     setValidationError('');
+    setInfoMessage(null);
     setIsAddModalOpen(true);
   }
 
@@ -155,7 +165,13 @@ export function LibraryManagePage() {
       return;
     }
     try {
-      await addRoot(name, path);
+      const root = await addRoot(name, path);
+      if (root.scanTaskId) {
+        await trackTask(root.scanTaskId);
+        setInfoMessage(`Library created. Initial scan started for "${root.name}".`);
+      } else {
+        setInfoMessage(`Library created: "${root.name}".`);
+      }
       setIsAddModalOpen(false);
       await loadRootEntries();
     } catch {
@@ -178,7 +194,13 @@ export function LibraryManagePage() {
       return;
     }
     try {
-      await updateRoot(currentRoot.id, { name, path });
+      const updated = await updateRoot(currentRoot.id, { name, path });
+      if (updated.scanTaskId) {
+        await trackTask(updated.scanTaskId);
+        setInfoMessage(`Root updated. A full rescan started for "${updated.name}".`);
+      } else {
+        setInfoMessage(`Root updated: "${updated.name}".`);
+      }
       setIsEditModalOpen(false);
       await loadRootEntries();
     } catch {
@@ -394,6 +416,7 @@ export function LibraryManagePage() {
             <p>{error}</p>
           </div>
         ) : null}
+        {infoMessage ? <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-700">{infoMessage}</div> : null}
 
         <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <div className="hidden grid-cols-12 gap-4 border-b border-border bg-secondary/30 px-6 py-3 text-sm font-medium text-muted-foreground sm:grid">

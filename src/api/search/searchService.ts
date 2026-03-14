@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { itemModel, type ItemType, type SearchItemRecord, type SearchSortBy, type SortOrder } from "../../models/itemModel";
 import { libraryModel } from "../../models/libraryModel";
+import { isBrowserPreviewableExtension } from "../../services/fileSupportService";
 
 type FolderSearchEntry = {
   kind: "folder";
@@ -38,15 +39,11 @@ type FolderIndexItem = {
 };
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-const PREVIEWABLE_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "avif", "mp4", "webm", "mp3", "wav", "flac", "m4a", "aac", "ogg", "pdf", "txt", "md", "json", "csv"]);
 const folderIndexCache = new Map<string, { builtAt: number; items: FolderIndexItem[] }>();
 const FOLDER_INDEX_TTL_MS = 60_000;
 
 function isPreviewable(ext: string | null): boolean {
-  if (!ext) {
-    return false;
-  }
-  return PREVIEWABLE_EXT.has(ext.toLowerCase());
+  return isBrowserPreviewableExtension(ext);
 }
 
 function getFileName(filePath: string): string {

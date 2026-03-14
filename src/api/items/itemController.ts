@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { AppError } from "../../errors/appError";
 import { ErrorCodes } from "../../errors/errorCodes";
 import { itemService } from "./itemService";
+import { buildInlineContentDisposition } from "../../services/fileStreamService";
 
 export const itemController = {
   getItemById(req: Request, res: Response): void {
@@ -14,7 +15,7 @@ export const itemController = {
     const { item, stat, mimeType, range } = await itemService.getFileResponseData(req.params.itemId, req);
     res.setHeader("Accept-Ranges", "bytes");
     res.setHeader("Content-Type", mimeType);
-    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(item.title)}${item.ext ? `.${item.ext}` : ""}"`);
+    res.setHeader("Content-Disposition", buildInlineContentDisposition(`${item.title}${item.ext ? `.${item.ext}` : ""}`));
 
     if (range) {
       const { start, end } = range;

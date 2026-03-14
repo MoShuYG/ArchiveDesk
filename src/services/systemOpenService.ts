@@ -1,10 +1,10 @@
 import fs from "fs/promises";
-import path from "path";
 import { spawn } from "child_process";
 import { env } from "../config/env";
 import { AppError } from "../errors/appError";
 import { ErrorCodes } from "../errors/errorCodes";
 import type { ItemRecord } from "../models/itemModel";
+import { ensureRegularFile } from "./fileStreamService";
 
 export type ExternalOpenResult = {
   ok: true;
@@ -16,16 +16,10 @@ function isImageItem(item: ItemRecord): boolean {
 }
 
 async function ensureFile(filePath: string): Promise<string> {
-  const absolutePath = path.resolve(filePath);
-  let stat;
-  try {
-    stat = await fs.stat(absolutePath);
-  } catch {
-    throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, "Target file not found.");
-  }
-  if (!stat.isFile()) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Target path is not a file.");
-  }
+  const { absolutePath } = await ensureRegularFile(filePath, {
+    notFound: "Target file not found.",
+    invalidType: "Target path is not a file."
+  });
   return absolutePath;
 }
 
@@ -41,17 +35,37 @@ async function canUseQuickViewer(): Promise<boolean> {
   }
 }
 
-function runPowerShell(script: string): Promise<void> {
+function sanitizeProcessOutput(buffers: Buffer[]): string | null {
+  if (buffers.length === 0) {
+    return null;
+  }
+  const text = Buffer.concat(buffers).toString("utf8").replace(/\0/g, "").trim();
+  if (!text || text.includes("\uFFFD")) {
+    return null;
+  }
+  const compact = text.replace(/\s+/g, " ").trim();
+  if (!compact) {
+    return null;
+  }
+  return compact.length > 240 ? `${compact.slice(0, 237)}...` : compact;
+}
+
+function runCommand(file: string, args: string[], fallbackMessage: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], {
+    const child = spawn(file, args, {
       detached: false,
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true
     });
-    let stderr = "";
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
 
-    child.stderr.on("data", (chunk: Buffer | string) => {
-      stderr += chunk.toString();
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdoutChunks.push(Buffer.from(chunk));
+    });
+
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderrChunks.push(Buffer.from(chunk));
     });
 
     child.once("error", (error) => {
@@ -63,25 +77,41 @@ function runPowerShell(script: string): Promise<void> {
         resolve();
         return;
       }
-      const message = stderr.trim() || `PowerShell exited with code ${code ?? -1}`;
-      reject(new Error(message));
+      const detail = sanitizeProcessOutput(stderrChunks) ?? sanitizeProcessOutput(stdoutChunks);
+      reject(new Error(detail ? `${fallbackMessage}: ${detail}` : fallbackMessage));
     });
   });
 }
 
-function escapePowerShellSingleQuoted(value: string): string {
-  return value.replace(/'/g, "''");
+function spawnDetached(file: string, args: string[], fallbackMessage: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(file, args, {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true
+    });
+    child.once("error", (error) => reject(error));
+    child.once("spawn", () => {
+      child.unref();
+      resolve();
+    });
+    child.once("close", (code) => {
+      if (code && code !== 0) {
+        reject(new Error(fallbackMessage));
+      }
+    });
+  });
 }
 
 async function openWithSystem(filePath: string): Promise<void> {
   try {
-    const command = `$ErrorActionPreference='Stop'; try { Start-Process -FilePath '${escapePowerShellSingleQuoted(filePath)}' -ErrorAction Stop | Out-Null; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }`;
-    await runPowerShell(command);
+    const escapedPath = filePath.replace(/"/g, "\"\"");
+    await runCommand("cmd.exe", ["/d", "/s", "/c", `start "" "${escapedPath}"`], "Windows shell open failed");
   } catch (error) {
     throw new AppError(
       500,
       ErrorCodes.INTERNAL_ERROR,
-      `Failed to open file with system handler: ${error instanceof Error ? error.message : "unknown error"}`
+      error instanceof Error ? error.message : "Failed to open file in Windows."
     );
   }
 }
@@ -91,8 +121,7 @@ async function openWithQuickViewer(filePath: string): Promise<boolean> {
     return false;
   }
   try {
-    const command = `$ErrorActionPreference='Stop'; try { Start-Process -FilePath '${escapePowerShellSingleQuoted(env.quickViewerPath)}' -ArgumentList @('${escapePowerShellSingleQuoted(filePath)}') -ErrorAction Stop | Out-Null; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }`;
-    await runPowerShell(command);
+    await spawnDetached(env.quickViewerPath, [filePath], "QuickViewer launch failed");
     return true;
   } catch {
     return false;

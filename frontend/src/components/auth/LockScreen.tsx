@@ -6,7 +6,14 @@ import { cn } from '../../utils/cn';
 
 export function LockScreen() {
   const navigate = useNavigate();
-  const { session, isAuthenticated, isLocked, isLoading, error, unlock, logout, clearError } = useAuthStore();
+  const session = useAuthStore((s) => s.session);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isLocked = useAuthStore((s) => s.isLocked);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const error = useAuthStore((s) => s.error);
+  const unlock = useAuthStore((s) => s.unlock);
+  const logout = useAuthStore((s) => s.logout);
+  const clearError = useAuthStore((s) => s.clearError);
 
   const [username, setUsername] = useState(session?.username ?? '');
   const [password, setPassword] = useState('');

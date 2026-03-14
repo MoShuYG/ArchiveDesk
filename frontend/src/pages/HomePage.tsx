@@ -54,7 +54,10 @@ function ResultIcon({ item }: { item: SearchEntry }) {
 }
 
 function SearchEntryThumb({ entry }: { entry: SearchEntry }) {
-  const thumbnailUrl = entry.kind === 'file' && entry.itemId && (entry.type === 'image' || entry.type === 'video') ? `/api/items/${entry.itemId}/thumbnail` : null;
+  const thumbnailUrl =
+    entry.kind === 'file' && entry.itemId && (entry.type === 'image' || entry.type === 'video') && entry.ext !== 'tga'
+      ? `/api/items/${entry.itemId}/thumbnail`
+      : null;
   const { src, isLoading } = useAuthenticatedImage(thumbnailUrl);
 
   if (src) {
@@ -268,6 +271,7 @@ export function HomePage() {
         path={preview?.relPath}
         type={preview?.type}
         size={preview?.size}
+        ext={preview?.ext}
       />
     </div>
   );

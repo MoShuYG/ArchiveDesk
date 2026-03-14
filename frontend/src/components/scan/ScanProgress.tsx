@@ -4,7 +4,11 @@ import { useScanStore } from '../../state/scanStore';
 import { cn } from '../../utils/cn';
 
 export function ScanProgress() {
-  const { currentTask, isScanning, error, startFullScan, startIncrementalScan } = useScanStore();
+  const currentTask = useScanStore((s) => s.currentTask);
+  const isScanning = useScanStore((s) => s.isScanning);
+  const error = useScanStore((s) => s.error);
+  const startFullScan = useScanStore((s) => s.startFullScan);
+  const startIncrementalScan = useScanStore((s) => s.startIncrementalScan);
 
   const isSuccess = currentTask?.status === 'success';
   const isFailed = currentTask?.status === 'failed';

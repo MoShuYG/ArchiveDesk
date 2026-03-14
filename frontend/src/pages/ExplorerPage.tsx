@@ -16,6 +16,7 @@ import { cn } from '../utils/cn';
 import { libraryService } from '../services/libraryService';
 import { historyService } from '../services/historyService';
 import { itemService } from '../services/itemService';
+import { useScanStore } from '../state/scanStore';
 import type {
   CoverBrowserEntry,
   CoverBrowserSortBy,
@@ -53,6 +54,7 @@ type PreviewState = {
   path: string;
   type?: ItemType;
   size?: number;
+  ext?: string | null;
 };
 
 type CoverTarget = {
@@ -134,8 +136,20 @@ function FolderCover({
 }
 
 function FileThumb({ entry }: { entry: ExplorerEntry & { kind: 'file' } }) {
-  const shouldUseThumbnail = Boolean(entry.itemId && (entry.type === 'image' || entry.type === 'video'));
-  const { src, isLoading } = useAuthenticatedImage(shouldUseThumbnail ? `/api/items/${entry.itemId}/thumbnail` : null);
+  const supportsThumbnail = entry.type === 'video' || (entry.type === 'image' && entry.ext !== 'tga');
+  const shouldUseThumbnail = Boolean(entry.itemId && supportsThumbnail);
+  const { src, isLoading, error } = useAuthenticatedImage(shouldUseThumbnail ? `/api/items/${entry.itemId}/thumbnail` : null);
+
+  let badge: string | null = null;
+  if (!entry.itemId) {
+    badge = 'Unindexed';
+  } else if (!supportsThumbnail) {
+    badge = 'No thumbnail';
+  } else if (error) {
+    badge = 'Thumbnail failed';
+  } else if (!src && !isLoading) {
+    badge = 'No thumbnail';
+  }
 
   if (src) {
     return <img src={src} alt={entry.name} className="h-full w-full object-cover" />;
@@ -149,7 +163,16 @@ function FileThumb({ entry }: { entry: ExplorerEntry & { kind: 'file' } }) {
     );
   }
 
-  return <div className="flex h-full items-center justify-center bg-secondary/20">{getFileIcon(entry.type)}</div>;
+  return (
+    <div className="relative flex h-full items-center justify-center bg-secondary/20">
+      {getFileIcon(entry.type)}
+      {badge ? (
+        <span className="absolute bottom-2 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow">
+          {badge}
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 function CoverCandidateThumb({ entry }: { entry: CoverBrowserEntry }) {
@@ -194,6 +217,8 @@ export function ExplorerPage() {
   const [coverActionLoading, setCoverActionLoading] = useState(false);
   const [uploadTarget, setUploadTarget] = useState<CoverTarget | null>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const currentTask = useScanStore((s) => s.currentTask);
+  const isScanning = useScanStore((s) => s.isScanning);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total]);
 
@@ -405,6 +430,7 @@ export function ExplorerPage() {
       path: entry.relPath,
       type: entry.type,
       size: entry.size,
+      ext: entry.ext,
     });
     if (entry.itemId) {
       historyService.recordView(entry.itemId).catch(() => { });
@@ -601,6 +627,11 @@ export function ExplorerPage() {
       {error ? <div className="animate-in slide-in-from-top-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive backdrop-blur-md">{error}</div> : null}
       {actionError ? <div className="animate-in slide-in-from-top-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive backdrop-blur-md">{actionError}</div> : null}
       {actionInfo ? <div className="animate-in slide-in-from-top-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-700 backdrop-blur-md">{actionInfo}</div> : null}
+      {currentRootId && isScanning ? (
+        <div className="animate-in slide-in-from-top-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-800 backdrop-blur-md">
+          Scan/indexing is in progress{currentTask ? ` (${currentTask.processedFiles}/${Math.max(currentTask.totalFiles, currentTask.processedFiles || 0)} files).` : '.'} Supported formats can still be previewed directly before indexing finishes.
+        </div>
+      ) : null}
 
       <section className="min-h-[50vh] rounded-2xl border border-white/20 bg-card/80 p-6 shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-card/40 dark:shadow-black/40">
         {!currentRootId ? (
@@ -697,6 +728,7 @@ export function ExplorerPage() {
         path={preview?.path}
         type={preview?.type}
         size={preview?.size}
+        ext={preview?.ext}
       />
 
       {coverMenu ? (

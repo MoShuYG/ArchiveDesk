@@ -133,4 +133,10 @@ export const libraryService = {
       relPath: input.relPath,
     });
   },
+
+  async getExplorerEntryFileBlob(input: { rootId: string; relPath: string }): Promise<Blob> {
+    return api.getBlob(`/api/library/roots/${input.rootId}/file`, {
+      relPath: input.relPath,
+    });
+  },
 };

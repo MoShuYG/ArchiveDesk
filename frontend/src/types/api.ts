@@ -35,6 +35,7 @@ export interface LibraryRoot {
   normalizedPath: string;
   createdAt: number;
   updatedAt: number;
+  scanTaskId?: string | null;
 }
 
 export interface LibraryRootsResponse {
@@ -249,6 +250,7 @@ export interface HistoryItem {
   title: string;
   path: string;
   type: ItemType;
+  ext?: string | null;
   metadata: Record<string, unknown>;
 }
 
