@@ -50,7 +50,7 @@ export function Login() {
       }
       navigate('/', { replace: true });
     } catch {
-      // Error message is already handled in the store.
+      // 错误消息已在状态仓库中处理。
     }
   }
 

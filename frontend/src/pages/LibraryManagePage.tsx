@@ -168,9 +168,9 @@ export function LibraryManagePage() {
       const root = await addRoot(name, path);
       if (root.scanTaskId) {
         await trackTask(root.scanTaskId);
-        setInfoMessage(`Library created. Initial scan started for "${root.name}".`);
+        setInfoMessage(`资源库已创建，已开始为“${root.name}”执行首次扫描。`);
       } else {
-        setInfoMessage(`Library created: "${root.name}".`);
+        setInfoMessage(`资源库已创建：“${root.name}”。`);
       }
       setIsAddModalOpen(false);
       await loadRootEntries();
@@ -197,9 +197,9 @@ export function LibraryManagePage() {
       const updated = await updateRoot(currentRoot.id, { name, path });
       if (updated.scanTaskId) {
         await trackTask(updated.scanTaskId);
-        setInfoMessage(`Root updated. A full rescan started for "${updated.name}".`);
+        setInfoMessage(`根目录已更新，已开始为“${updated.name}”执行全量重扫。`);
       } else {
-        setInfoMessage(`Root updated: "${updated.name}".`);
+        setInfoMessage(`根目录已更新：“${updated.name}”。`);
       }
       setIsEditModalOpen(false);
       await loadRootEntries();

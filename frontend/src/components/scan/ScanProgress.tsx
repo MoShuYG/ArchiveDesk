@@ -26,7 +26,7 @@ export function ScanProgress() {
             <ArrowPathIcon className={cn('h-5 w-5', isScanning && 'animate-spin text-primary')} />
             扫描资源库
           </h3>
-          <p className="mt-1 text-sm text-muted-foreground">同步本地文件系统中的资源与元数据。</p>
+          <p className="mt-1 text-sm text-muted-foreground">同步本地文件系统中的资源和元数据。</p>
         </div>
 
         <div className="flex gap-3">
@@ -92,7 +92,7 @@ export function ScanProgress() {
             <div className="mt-6">
               <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-amber-500">
                 <InformationCircleIcon className="h-4 w-4" />
-                扫描警告 ({currentTask.warnings.length})
+                扫描警告（{currentTask.warnings.length}）
               </h4>
               <ul className="custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-lg border border-border/50 bg-secondary/20 p-3 pr-2 text-sm text-muted-foreground">
                 {currentTask.warnings.map((warning, idx) => (

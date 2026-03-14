@@ -10,7 +10,6 @@ type AppEnv = {
   trustProxy: string | boolean;
   jwtAccessSecret: string;
   jwtRefreshSecret: string;
-  quickViewerPath: string | null;
 };
 
 function loadEnvFile(): void {
@@ -112,8 +111,7 @@ export const env: AppEnv = {
   requireHttps: readBooleanEnv("REQUIRE_HTTPS", process.env.NODE_ENV === "production"),
   trustProxy: readTrustProxyEnv(),
   jwtAccessSecret: process.env.JWT_ACCESS_SECRET ?? "dev_access_secret_change_me",
-  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET ?? "dev_refresh_secret_change_me",
-  quickViewerPath: normalizeOptionalPath(process.env.QUICKVIEWER_PATH)
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET ?? "dev_refresh_secret_change_me"
 };
 
 if (env.nodeEnv === "production") {

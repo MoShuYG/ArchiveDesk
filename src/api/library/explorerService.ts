@@ -8,7 +8,7 @@ import { itemModel, ItemType } from "../../models/itemModel";
 import { libraryModel } from "../../models/libraryModel";
 import { folderCoverStore } from "../../services/folderCoverStore";
 import { getStreamFileResponseData, type StreamFileResponseData } from "../../services/fileStreamService";
-import { classifyItemTypeFromExt, isBrowserPreviewableExtension, isImageLikeExtension } from "../../services/fileSupportService";
+import { classifyItemTypeFromExt, isBrowserPreviewableExtension } from "../../services/fileSupportService";
 import { systemOpenService } from "../../services/systemOpenService";
 
 export type ExplorerSortBy = "name" | "type" | "updatedAt" | "size";
@@ -301,13 +301,11 @@ export const explorerService = {
     return { page, pageSize, total, items };
   },
 
-  async openEntry(input: { rootId: string; relPath: string }): Promise<{ ok: true; openedWith: "quickviewer" | "system" }> {
+  async openEntry(input: { rootId: string; relPath: string }): Promise<{ ok: true }> {
     const root = findRootOrThrow(input.rootId);
     const relPath = normalizeRelPath(input.relPath);
     const absolutePath = resolvePathWithinRoot(root.path, relPath);
-    const ext = path.extname(absolutePath).replace(".", "").toLowerCase() || null;
-    const preferQuickViewer = isImageLikeExtension(ext);
-    const result = await systemOpenService.openPath(absolutePath, { preferQuickViewer });
+    const result = await systemOpenService.openPath(absolutePath);
     const item = itemModel.getItemByPath(absolutePath);
     if (item && !item.deleted) {
       historyModel.recordView(item.id);
@@ -346,8 +344,8 @@ export const explorerService = {
         "m4a",
         "aac"
       ]),
-      unsupportedMessage: "Browser preview is not supported for this file type.",
-      notFoundMessage: "Preview file not found."
+      unsupportedMessage: "当前文件类型暂不支持浏览器预览。",
+      notFoundMessage: "未找到可预览文件。"
     });
   }
 };

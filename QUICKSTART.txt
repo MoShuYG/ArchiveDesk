@@ -1,0 +1,10 @@
+﻿ArchiveDesk v0.1.0-alpha.2 Windows 预览版
+
+双击 start.bat 启动 ArchiveDesk，并等待几秒完成初始化。
+
+如果浏览器没有自动打开，请访问：
+http://localhost:3000
+
+此预览包默认关闭 REQUIRE_HTTPS，便于本地运行。
+
+如果端口 3000 已被占用，启动可能会失败，请先关闭占用程序后重试。

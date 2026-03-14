@@ -23,6 +23,7 @@ export const BROWSER_PREVIEW_EXTENSIONS = new Set([
   "csv",
   "mp3",
   "mp4",
+  "mov",
   "webm",
   "wav",
   "flac",

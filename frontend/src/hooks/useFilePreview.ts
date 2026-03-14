@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { ItemType } from '../types/api';
-import { api } from '../services/apiService';
+import { api, getAccessToken } from '../services/apiService';
 
-const MAX_PREVIEW_BYTES = 200 * 1024 * 1024;
+const MAX_TEXT_PREVIEW_BYTES = 10 * 1024 * 1024;
 const TEXT_PREVIEW_EXTENSIONS = new Set(['txt', 'md', 'json', 'csv']);
 const DIRECT_PREVIEW_EXTENSIONS = new Set([
   'jpg',
@@ -19,6 +19,7 @@ const DIRECT_PREVIEW_EXTENSIONS = new Set([
   'csv',
   'mp3',
   'mp4',
+  'mov',
   'webm',
   'wav',
   'flac',
@@ -66,6 +67,46 @@ function deriveMode(type: ItemType, mimeType: string, ext?: string | null): Prev
   return 'unsupported';
 }
 
+function deriveModeFromMetadata(type?: ItemType, ext?: string | null): PreviewMode {
+  const normalizedExt = normalizeExt(ext);
+  if (normalizedExt === 'tga') return 'unsupported';
+  if (normalizedExt === 'pdf') return 'pdf';
+  if (normalizedExt && TEXT_PREVIEW_EXTENSIONS.has(normalizedExt)) return 'text';
+  if (normalizedExt && ['mp4', 'mov', 'webm'].includes(normalizedExt)) return 'video';
+  if (normalizedExt && ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac'].includes(normalizedExt)) return 'audio';
+  if (normalizedExt && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif'].includes(normalizedExt)) return 'image';
+  if (type === 'image') return 'image';
+  if (type === 'video') return 'video';
+  if (type === 'audio' || type === 'voice') return 'audio';
+  if (type === 'novel') return 'text';
+  return 'unsupported';
+}
+
+function isStreamableMode(mode: PreviewMode): boolean {
+  return mode === 'video' || mode === 'audio' || mode === 'pdf';
+}
+
+function buildProtectedPreviewUrl(input: {
+  itemId?: string | null;
+  rootId?: string | null;
+  relPath?: string | null;
+}): string | null {
+  const accessToken = getAccessToken();
+  if (!accessToken) {
+    return null;
+  }
+
+  if (input.itemId) {
+    return `/api/items/${input.itemId}/file?accessToken=${encodeURIComponent(accessToken)}`;
+  }
+
+  if (input.rootId && input.relPath) {
+    return `/api/library/roots/${input.rootId}/file?relPath=${encodeURIComponent(input.relPath)}&accessToken=${encodeURIComponent(accessToken)}`;
+  }
+
+  return null;
+}
+
 export function useFilePreview(input: {
   itemId?: string | null;
   rootId?: string | null;
@@ -83,12 +124,18 @@ export function useFilePreview(input: {
     error: null,
   });
 
+  const metadataMode = deriveModeFromMetadata(input.type, input.ext);
   const directPreviewAvailable = Boolean(!input.itemId && input.rootId && input.relPath && canDirectPreview(input.ext));
   const canAttemptPreview = input.itemId ? normalizeExt(input.ext) !== 'tga' : directPreviewAvailable;
+  const tooLargeForText = metadataMode === 'text' && typeof input.size === 'number' && input.size > MAX_TEXT_PREVIEW_BYTES;
+  const streamUrl = canAttemptPreview && !tooLargeForText && isStreamableMode(metadataMode) ? buildProtectedPreviewUrl(input) : null;
 
   useEffect(() => {
-    const isTooLarge = typeof input.size === 'number' && input.size > MAX_PREVIEW_BYTES;
-    if (!canAttemptPreview || isTooLarge) {
+    if (!canAttemptPreview || tooLargeForText) {
+      return;
+    }
+
+    if (streamUrl || isStreamableMode(metadataMode)) {
       return;
     }
 
@@ -153,7 +200,7 @@ export function useFilePreview(input: {
           text: null,
           isLoading: false,
           tooLarge: false,
-          error: error instanceof Error ? error.message : 'Failed to load preview.',
+          error: error instanceof Error ? error.message : '加载预览失败。',
         });
       }
     }
@@ -165,7 +212,7 @@ export function useFilePreview(input: {
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [canAttemptPreview, input.ext, input.itemId, input.relPath, input.rootId, input.size, input.type]);
+  }, [canAttemptPreview, input.ext, input.itemId, input.relPath, input.rootId, input.type, metadataMode, streamUrl, tooLargeForText]);
 
   if (!canAttemptPreview) {
     return {
@@ -178,7 +225,7 @@ export function useFilePreview(input: {
     };
   }
 
-  if (typeof input.size === 'number' && input.size > MAX_PREVIEW_BYTES) {
+  if (tooLargeForText) {
     return {
       mode: 'unsupported',
       src: null,
@@ -186,6 +233,17 @@ export function useFilePreview(input: {
       isLoading: false,
       tooLarge: true,
       error: null,
+    };
+  }
+
+  if (isStreamableMode(metadataMode)) {
+    return {
+      mode: streamUrl ? metadataMode : 'unsupported',
+      src: streamUrl,
+      text: null,
+      isLoading: false,
+      tooLarge: false,
+      error: streamUrl ? null : '当前预览会话已失效，请重新登录后再试。',
     };
   }
 

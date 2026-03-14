@@ -36,7 +36,17 @@ export function createApp() {
 
   app.set("trust proxy", env.trustProxy);
   app.disable("x-powered-by");
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          imgSrc: ["'self'", "data:", "blob:"],
+          mediaSrc: ["'self'", "blob:"],
+          frameSrc: ["'self'", "blob:"]
+        }
+      }
+    })
+  );
   app.use(
     cors((req, callback) => {
       const origin = req.header("Origin");

@@ -5,6 +5,10 @@ export interface ApiError {
   requestId: string | null;
 }
 
+export interface OpenExternalResponse {
+  ok: true;
+}
+
 export interface LoginResponse {
   accessToken: string;
   refreshToken: string;

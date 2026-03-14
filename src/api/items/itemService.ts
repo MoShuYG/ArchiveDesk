@@ -197,7 +197,7 @@ export const itemService = {
     return this.getThumbnailDataByItem(item);
   },
 
-  async openItemExternally(itemId: string): Promise<{ ok: true; openedWith: "quickviewer" | "system" }> {
+  async openItemExternally(itemId: string): Promise<{ ok: true }> {
     const item = this.getItemById(itemId);
     const result = await systemOpenService.openItem(item);
     historyModel.recordView(item.id);

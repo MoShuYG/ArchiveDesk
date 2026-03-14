@@ -100,7 +100,6 @@ npm run dev
 | `JWT_ACCESS_SECRET` | JWT Access Token 密钥 |
 | `JWT_REFRESH_SECRET` | JWT Refresh Token 密钥 |
 | `CORS_ORIGIN` | 跨域来源 |
-| `QUICKVIEWER_PATH` | 外部查看器路径 |
 
 ### 🛠️ 技术栈
 

@@ -165,8 +165,8 @@ describe("integration api flow", () => {
   });
 
   test("should support explorer entries and external open endpoints", async () => {
-    const openItemSpy = jest.spyOn(systemOpenService, "openItem").mockResolvedValue({ ok: true, openedWith: "system" });
-    const openPathSpy = jest.spyOn(systemOpenService, "openPath").mockResolvedValue({ ok: true, openedWith: "system" });
+    const openItemSpy = jest.spyOn(systemOpenService, "openItem").mockResolvedValue({ ok: true });
+    const openPathSpy = jest.spyOn(systemOpenService, "openPath").mockResolvedValue({ ok: true });
     try {
       await request(app).post("/api/auth/setup-password").send({ password: "password123" }).expect(201);
       const login = await request(app).post("/api/auth/login").send({ password: "password123" }).expect(200);
@@ -216,8 +216,14 @@ describe("integration api flow", () => {
       expect(mixedSearch.body.items.length).toBeGreaterThanOrEqual(1);
 
       const itemOpen = await request(app).post(`/api/items/${itemId}/open`).set(authHeader(accessToken)).expect(200);
-      expect(itemOpen.body.openedWith).toBe("system");
+      expect(itemOpen.body).toEqual({ ok: true });
       expect(openItemSpy).toHaveBeenCalled();
+
+      const itemFileByQueryToken = await request(app)
+        .get(`/api/items/${itemId}/file`)
+        .query({ accessToken })
+        .expect(200);
+      expect(itemFileByQueryToken.header["content-type"]).toContain("image/jpeg");
 
       await request(app).post(`/api/history/items/${itemId}/view`).set(authHeader(accessToken)).expect(200);
       const filteredHistory = await request(app)
@@ -232,8 +238,14 @@ describe("integration api flow", () => {
         .set(authHeader(accessToken))
         .send({ relPath: "cover.jpg" })
         .expect(200);
-      expect(entryOpen.body.openedWith).toBe("system");
+      expect(entryOpen.body).toEqual({ ok: true });
       expect(openPathSpy).toHaveBeenCalled();
+
+      const entryFileByQueryToken = await request(app)
+        .get(`/api/library/roots/${rootId}/file`)
+        .query({ relPath: "cover.jpg", accessToken })
+        .expect(200);
+      expect(entryFileByQueryToken.header["content-type"]).toContain("image/jpeg");
     } finally {
       openItemSpy.mockRestore();
       openPathSpy.mockRestore();

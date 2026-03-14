@@ -87,7 +87,7 @@ export const historyModel = {
               : `h.last_accessed_at ${direction}`;
     const rows = db
       .prepare(
-        `SELECT h.*, i.id AS i_id, i.root_id AS i_root_id, i.title AS i_title, i.path AS i_path, i.type AS i_type, i.metadata AS i_metadata, i.size AS i_size, i.updated_at AS i_updated_at
+        `SELECT h.*, i.id AS i_id, i.root_id AS i_root_id, i.title AS i_title, i.path AS i_path, i.type AS i_type, i.ext AS i_ext, i.metadata AS i_metadata, i.size AS i_size, i.updated_at AS i_updated_at
          FROM history h
          JOIN items i ON i.id = h.item_id
          ${where}
@@ -106,6 +106,7 @@ export const historyModel = {
           title: row.i_title,
           path: row.i_path,
           type: row.i_type,
+          ext: row.i_ext ?? null,
           metadata: JSON.parse(row.i_metadata)
         }
       }))

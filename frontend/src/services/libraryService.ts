@@ -9,6 +9,7 @@ import type {
   FolderListResponse,
   LibraryRoot,
   LibraryRootsResponse,
+  OpenExternalResponse,
   RootEntriesResponse,
 } from '../types/api';
 
@@ -128,8 +129,8 @@ export const libraryService = {
     });
   },
 
-  async openExplorerEntry(input: { rootId: string; relPath: string }): Promise<{ ok: true; openedWith: 'quickviewer' | 'system' }> {
-    return api.post<{ ok: true; openedWith: 'quickviewer' | 'system' }>(`/api/library/roots/${input.rootId}/entries/open`, {
+  async openExplorerEntry(input: { rootId: string; relPath: string }): Promise<OpenExternalResponse> {
+    return api.post<OpenExternalResponse>(`/api/library/roots/${input.rootId}/entries/open`, {
       relPath: input.relPath,
     });
   },

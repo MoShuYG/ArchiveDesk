@@ -17,8 +17,31 @@ function parseBearerToken(authorization: string | undefined): string | null {
   return token;
 }
 
+function parseQueryToken(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function allowQueryToken(req: Request): boolean {
+  return req.method === "GET" && req.path.endsWith("/file");
+}
+
+function getRequestToken(req: Request): string | null {
+  const bearerToken = parseBearerToken(req.header("authorization"));
+  if (bearerToken) {
+    return bearerToken;
+  }
+  if (allowQueryToken(req)) {
+    return parseQueryToken(req.query.accessToken);
+  }
+  return null;
+}
+
 export function requireAuthMiddleware(req: Request, _res: Response, next: NextFunction): void {
-  const token = parseBearerToken(req.header("authorization"));
+  const token = getRequestToken(req);
   if (!token) {
     next(new AppError(401, ErrorCodes.UNAUTHORIZED, "Missing Bearer token."));
     return;
@@ -29,7 +52,7 @@ export function requireAuthMiddleware(req: Request, _res: Response, next: NextFu
 }
 
 export function requireAuthAllowLockedMiddleware(req: Request, _res: Response, next: NextFunction): void {
-  const token = parseBearerToken(req.header("authorization"));
+  const token = getRequestToken(req);
   if (!token) {
     next(new AppError(401, ErrorCodes.UNAUTHORIZED, "Missing Bearer token."));
     return;

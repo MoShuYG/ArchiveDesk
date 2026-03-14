@@ -1,6 +1,4 @@
-import fs from "fs/promises";
 import { spawn } from "child_process";
-import { env } from "../config/env";
 import { AppError } from "../errors/appError";
 import { ErrorCodes } from "../errors/errorCodes";
 import type { ItemRecord } from "../models/itemModel";
@@ -8,31 +6,14 @@ import { ensureRegularFile } from "./fileStreamService";
 
 export type ExternalOpenResult = {
   ok: true;
-  openedWith: "quickviewer" | "system";
 };
-
-function isImageItem(item: ItemRecord): boolean {
-  return item.type === "image";
-}
 
 async function ensureFile(filePath: string): Promise<string> {
   const { absolutePath } = await ensureRegularFile(filePath, {
-    notFound: "Target file not found.",
-    invalidType: "Target path is not a file."
+    notFound: "未找到目标文件。",
+    invalidType: "目标路径不是文件。"
   });
   return absolutePath;
-}
-
-async function canUseQuickViewer(): Promise<boolean> {
-  if (!env.quickViewerPath) {
-    return false;
-  }
-  try {
-    const stat = await fs.stat(env.quickViewerPath);
-    return stat.isFile();
-  } catch {
-    return false;
-  }
 }
 
 function sanitizeProcessOutput(buffers: Buffer[]): string | null {
@@ -50,12 +31,13 @@ function sanitizeProcessOutput(buffers: Buffer[]): string | null {
   return compact.length > 240 ? `${compact.slice(0, 237)}...` : compact;
 }
 
-function runCommand(file: string, args: string[], fallbackMessage: string): Promise<void> {
+function runCommand(file: string, args: string[], fallbackMessage: string, extraEnv?: NodeJS.ProcessEnv): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(file, args, {
       detached: false,
       stdio: ["ignore", "pipe", "pipe"],
-      windowsHide: true
+      windowsHide: true,
+      env: extraEnv ? { ...process.env, ...extraEnv } : process.env
     });
     const stdoutChunks: Buffer[] = [];
     const stderrChunks: Buffer[] = [];
@@ -83,78 +65,41 @@ function runCommand(file: string, args: string[], fallbackMessage: string): Prom
   });
 }
 
-function spawnDetached(file: string, args: string[], fallbackMessage: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(file, args, {
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true
-    });
-    child.once("error", (error) => reject(error));
-    child.once("spawn", () => {
-      child.unref();
-      resolve();
-    });
-    child.once("close", (code) => {
-      if (code && code !== 0) {
-        reject(new Error(fallbackMessage));
-      }
-    });
-  });
-}
-
 async function openWithSystem(filePath: string): Promise<void> {
   try {
-    const escapedPath = filePath.replace(/"/g, "\"\"");
-    await runCommand("cmd.exe", ["/d", "/s", "/c", `start "" "${escapedPath}"`], "Windows shell open failed");
+    await runCommand(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "Start-Process -FilePath $env:ARCHIVEDESK_OPEN_TARGET"
+      ],
+      "调用 Windows 默认方式打开文件失败",
+      { ARCHIVEDESK_OPEN_TARGET: filePath }
+    );
   } catch (error) {
     throw new AppError(
       500,
       ErrorCodes.INTERNAL_ERROR,
-      error instanceof Error ? error.message : "Failed to open file in Windows."
+      error instanceof Error ? error.message : "在 Windows 中打开文件失败。"
     );
   }
 }
 
-async function openWithQuickViewer(filePath: string): Promise<boolean> {
-  if (!(await canUseQuickViewer()) || !env.quickViewerPath) {
-    return false;
-  }
-  try {
-    await spawnDetached(env.quickViewerPath, [filePath], "QuickViewer launch failed");
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export const systemOpenService = {
-  async inspectQuickViewer(): Promise<{ configured: boolean; available: boolean; path: string | null }> {
-    const configured = Boolean(env.quickViewerPath);
-    const available = configured ? await canUseQuickViewer() : false;
-    return {
-      configured,
-      available,
-      path: env.quickViewerPath
-    };
-  },
-
   async openItem(item: ItemRecord): Promise<ExternalOpenResult> {
-    return this.openPath(item.path, { preferQuickViewer: isImageItem(item) });
+    return this.openPath(item.path);
   },
 
-  async openPath(filePath: string, options?: { preferQuickViewer?: boolean }): Promise<ExternalOpenResult> {
+  async openPath(filePath: string): Promise<ExternalOpenResult> {
     if (process.platform !== "win32") {
-      throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "External open is only supported on Windows.");
+      throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "仅支持在 Windows 环境中执行外部打开。");
     }
     const absolutePath = await ensureFile(filePath);
-    if (options?.preferQuickViewer) {
-      const opened = await openWithQuickViewer(absolutePath);
-      if (opened) {
-        return { ok: true, openedWith: "quickviewer" };
-      }
-    }
     await openWithSystem(absolutePath);
-    return { ok: true, openedWith: "system" };
+    return { ok: true };
   }
 };

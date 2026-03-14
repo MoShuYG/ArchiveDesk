@@ -142,13 +142,13 @@ function FileThumb({ entry }: { entry: ExplorerEntry & { kind: 'file' } }) {
 
   let badge: string | null = null;
   if (!entry.itemId) {
-    badge = 'Unindexed';
+    badge = '未索引';
   } else if (!supportsThumbnail) {
-    badge = 'No thumbnail';
+    badge = '无缩略图';
   } else if (error) {
-    badge = 'Thumbnail failed';
+    badge = '缩略图失败';
   } else if (!src && !isLoading) {
-    badge = 'No thumbnail';
+    badge = '无缩略图';
   }
 
   if (src) {
@@ -391,7 +391,7 @@ export function ExplorerPage() {
     setActionError(null);
     setActionInfo(null);
     try {
-      let result: { ok: true; openedWith: 'quickviewer' | 'system' } | null = null;
+      let result: { ok: true } | null = null;
       let firstError: unknown;
       if (entry.itemId) {
         try {
@@ -409,7 +409,7 @@ export function ExplorerPage() {
       if (!result) {
         throw firstError ?? new Error('打开失败');
       }
-      setActionInfo(result.openedWith === 'quickviewer' ? '已使用 QuickViewer 打开。' : '已调用 Windows 默认程序打开。');
+      setActionInfo('已使用 Windows 默认程序打开。');
     } catch (err) {
       setActionError(err instanceof Error ? err.message : '打开失败');
     }
@@ -629,7 +629,9 @@ export function ExplorerPage() {
       {actionInfo ? <div className="animate-in slide-in-from-top-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-700 backdrop-blur-md">{actionInfo}</div> : null}
       {currentRootId && isScanning ? (
         <div className="animate-in slide-in-from-top-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-800 backdrop-blur-md">
-          Scan/indexing is in progress{currentTask ? ` (${currentTask.processedFiles}/${Math.max(currentTask.totalFiles, currentTask.processedFiles || 0)} files).` : '.'} Supported formats can still be previewed directly before indexing finishes.
+          正在扫描并建立索引
+          {currentTask ? `（${currentTask.processedFiles}/${Math.max(currentTask.totalFiles, currentTask.processedFiles || 0)} 个文件）。` : '。'}
+          在索引完成前，已支持的格式仍可直接预览。
         </div>
       ) : null}
 
