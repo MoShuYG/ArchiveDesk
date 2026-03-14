@@ -57,7 +57,11 @@ function getRangeBounds(rangeHeader: string, fileSize: number): { start: number;
 }
 
 export function buildInlineContentDisposition(fileName: string): string {
-  const fallback = fileName.replace(/[\r\n"]/g, "_");
+  const fallback = fileName
+    .normalize("NFKD")
+    .replace(/[^\x20-\x7E]/g, "_")
+    .replace(/[\r\n"%;\\]/g, "_")
+    .trim() || "download";
   return `inline; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 }
 

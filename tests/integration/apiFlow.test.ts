@@ -251,4 +251,46 @@ describe("integration api flow", () => {
       openPathSpy.mockRestore();
     }
   });
+
+  test("should stream preview files with non-ascii filenames", async () => {
+    await request(app).post("/api/auth/setup-password").send({ password: "password123" }).expect(201);
+    const login = await request(app).post("/api/auth/login").send({ password: "password123" }).expect(200);
+    const accessToken = login.body.accessToken as string;
+
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "lsm-preview-unicode-"));
+    await fs.writeFile(path.join(tempRoot, "测试音频.mp3"), Buffer.from("fake-audio"));
+
+    const rootRes = await request(app)
+      .post("/api/library/roots")
+      .set(authHeader(accessToken))
+      .send({ name: "unicode-root", path: tempRoot })
+      .expect(201);
+    const rootId = rootRes.body.id as string;
+
+    const scan = await request(app).post("/api/scan/full").set(authHeader(accessToken)).expect(202);
+    await waitTask(app, accessToken, scan.body.taskId);
+
+    const list = await request(app)
+      .get(`/api/library/roots/${rootId}/entries`)
+      .set(authHeader(accessToken))
+      .query({ relPath: "", sortBy: "name", order: "asc" })
+      .expect(200);
+
+    const fileEntry = list.body.items.find((item: any) => item.kind === "file" && item.name === "测试音频.mp3");
+    expect(fileEntry?.itemId).toBeTruthy();
+
+    const itemFile = await request(app)
+      .get(`/api/items/${fileEntry.itemId}/file`)
+      .query({ accessToken })
+      .expect(200);
+    expect(itemFile.header["content-type"]).toContain("audio/mpeg");
+    expect(itemFile.header["content-disposition"]).toContain("filename*=");
+
+    const entryFile = await request(app)
+      .get(`/api/library/roots/${rootId}/file`)
+      .query({ relPath: "测试音频.mp3", accessToken })
+      .expect(200);
+    expect(entryFile.header["content-type"]).toContain("audio/mpeg");
+    expect(entryFile.header["content-disposition"]).toContain("filename*=");
+  });
 });
