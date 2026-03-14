@@ -6,15 +6,17 @@
   "main": "dist/src/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "clean": "node scripts/clean-build-artifacts.cjs",
     "build": "tsc -p tsconfig.json",
     "build:frontend": "npm --prefix frontend run build",
+    "build:all": "npm run build && npm run build:frontend",
     "start": "node dist/src/server.js",
-    "start:prod": "set NODE_ENV=production&& set REQUIRE_HTTPS=false&& node dist/src/server.js",
+    "start:release-like": "npm run clean && npm run build:all && node scripts/start-release-like.cjs",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "lint": "tsc --noEmit",
     "lint:frontend": "npm --prefix frontend run lint",
-    "release:check": "npm run lint && npm test && npm run build && npm run lint:frontend && npm run build:frontend"
+    "release:check": "npm run lint && npm test && npm run lint:frontend && npm run build:all"
   },
   "dependencies": {
     "argon2": "^0.43.0",

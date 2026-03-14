@@ -5,7 +5,7 @@ type AppEnv = {
   nodeEnv: string;
   port: number;
   dbPath: string;
-  corsOrigin: string;
+  corsAllowedOrigins: string[];
   requireHttps: boolean;
   trustProxy: string | boolean;
   jwtAccessSecret: string;
@@ -50,6 +50,17 @@ function normalizeOptionalPath(value: string | undefined): string | null {
   return trimmed;
 }
 
+function normalizeListEnv(value: string | undefined, fallback: string[]): string[] {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  return value
+    .split(",")
+    .map((item) => normalizeOptionalPath(item) ?? "")
+    .filter((item) => item.length > 0);
+}
+
 function readBooleanEnv(name: string, fallback: boolean): boolean {
   const value = process.env[name];
   if (value === undefined) {
@@ -86,14 +97,18 @@ function readTrustProxyEnv(): string | boolean {
 
 loadEnvFile();
 
+const nodeEnv = process.env.NODE_ENV ?? "development";
+const defaultCorsAllowedOrigins =
+  nodeEnv === "production" ? [] : ["http://localhost:5173", "http://localhost:5174"];
+
 export const env: AppEnv = {
-  nodeEnv: process.env.NODE_ENV ?? "development",
+  nodeEnv,
   port: readNumberEnv("PORT", 3000),
   dbPath:
     (process.env.DB_PATH ?? "./data/app.db") === ":memory:"
       ? ":memory:"
       : path.resolve(process.cwd(), process.env.DB_PATH ?? "./data/app.db"),
-  corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+  corsAllowedOrigins: normalizeListEnv(process.env.CORS_ORIGIN, defaultCorsAllowedOrigins),
   requireHttps: readBooleanEnv("REQUIRE_HTTPS", process.env.NODE_ENV === "production"),
   trustProxy: readTrustProxyEnv(),
   jwtAccessSecret: process.env.JWT_ACCESS_SECRET ?? "dev_access_secret_change_me",
