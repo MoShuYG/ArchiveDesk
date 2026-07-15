@@ -1,7 +1,7 @@
 > [!IMPORTANT]
 > 此代码完全由 AI 编写。
 
-<p align="right">
+<p align="center">
   <a href="README.md">English</a> |
   <a href="README.zh-CN.md">简体中文</a>
 </p>

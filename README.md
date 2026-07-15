@@ -1,7 +1,7 @@
 > [!IMPORTANT]
 > This codebase was written entirely by AI.
 
-<p align="right">
+<p align="center">
   <a href="README.md">English</a> |
   <a href="README.zh-CN.md">简体中文</a>
 </p>
