@@ -25,13 +25,17 @@
     "express": "^4.21.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
-    "uuid": "^11.1.0",
+    "morgan": "^1.11.0",
+    "uuid": "^11.1.1",
     "zod": "^3.24.4"
   },
   "optionalDependencies": {
     "@ffprobe-installer/ffprobe": "^2.1.2",
     "sharp": "^0.34.1"
+  },
+  "overrides": {
+    "path-to-regexp": "0.1.13",
+    "qs": "6.15.3"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
