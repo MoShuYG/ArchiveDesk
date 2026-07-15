@@ -161,7 +161,7 @@ npm run release:check  # 完整发版检查
 
 如果你在使用中发现问题，或对功能和体验有新的想法，欢迎通过 Issue 告诉我们；如果愿意动手改进，也欢迎提交 Pull Request。无论是修复 Bug、完善文档、打磨界面，还是补充扫描、搜索和预览相关测试，都能让 ArchiveDesk 变得更好。
 
-准备进行较大的改动时，建议先开一个 Issue 聊聊思路，方便提前确认方向，也能减少重复工作。更多说明请参阅 [CONTRIBUTING.md](CONTRIBUTING.md)。
+准备进行较大的改动时，建议先开一个 Issue 聊聊思路，方便提前确认方向，也能减少重复工作。更多说明请参阅 [贡献指南](CONTRIBUTING.zh-CN.md)。
 
 ## 📄 License
 

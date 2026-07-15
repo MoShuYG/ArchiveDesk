@@ -1,85 +1,69 @@
+<p align="center">
+  <a href="CONTRIBUTING.md">English</a> |
+  <a href="CONTRIBUTING.zh-CN.md">简体中文</a>
+</p>
+
 # Contributing to ArchiveDesk
 
-感谢你关注 ArchiveDesk。
+Thanks for taking the time to make ArchiveDesk better.
 
-ArchiveDesk 目前还处于**早期开发阶段**。  
-现在最需要的是：帮助项目变得更清晰、更稳定、更容易在 Windows 本地场景中使用。
+You do not need to arrive with a major feature. Reporting a problem you found during real use, fixing a line of documentation, adding a test, or smoothing out a small interaction can all make a meaningful difference.
 
----
+## Where to Start
 
-## 当前欢迎的贡献
+- Found a problem? Open an [Issue](https://github.com/MoShuYG/ArchiveDesk/issues)
+- Have an idea for a feature or interaction? An Issue is a good place to talk it through
+- Already have a focused fix? Feel free to open a [Pull Request](https://github.com/MoShuYG/ArchiveDesk/pulls)
+- Scanning, search, previews, Windows file handling, and documentation are all useful areas to work on
 
-目前尤其欢迎这些贡献：
+If you are not sure where to begin, browse the existing Issues and look for something familiar or interesting.
 
-- Bug 报告
-- 文档修正
-- 文案改进
-- 小范围 UI / 交互优化建议
-- 测试补充
-- 扫描、搜索、预览相关问题反馈
-- Windows 本地使用场景反馈
+## Reporting an Issue
 
----
+Before opening a new Issue, take a quick look through the existing ones in case the problem has already been reported. If it has not, include as much of the following as you can:
 
-## 当前暂不建议的贡献
+- Your Windows and Node.js versions
+- The page or feature where the problem occurred
+- Steps that reproduce the problem
+- What happened and what you expected instead
+- Relevant screenshots, logs, or error messages
+- The file format involved, and whether the problem happens with only one file
 
-为了避免项目方向过早发散，以下类型的改动建议先不要直接提交 PR：
+There is no need to make the report formal. Clear reproduction details are what matter most.
 
-- 大规模重构
-- 引入大型新依赖
-- 一次性改很多模块
-- 未讨论过的重大产品方向变更
-- 以跨平台为目标的大改动
+## Suggesting a Feature
 
-如果你想做这类事情，请先开 Issue 讨论。
+A useful feature request does not need a complete design. Tell us what feels difficult today, what problem you want to solve, and how you would like the workflow to feel.
 
----
+For large refactors, major new dependencies, cross-platform work, or changes to the product direction, please open an Issue before writing the code. It is easier to align on the approach early, and it helps avoid duplicated work.
 
-## 报告 Bug
+## Opening a Pull Request
 
-提交 Bug 时，请尽量带上这些信息：
+Keeping a change focused makes it easier to review and merge:
 
-- 使用环境（例如 Windows 10 / Windows 11）
-- 发生问题的页面或功能
-- 复现步骤
-- 实际结果
-- 预期结果
-- 截图、日志或报错信息（如果有）
+- Let each PR solve one clear problem
+- Keep unrelated refactors out of the change
+- Explain why the change is needed and how behavior changes
+- For bug fixes, include reproduction steps and verification results
+- For interface changes, include a screenshot or a short visual description
+- Add or update tests when behavior changes
 
-Bug 描述越具体，越容易被处理。
+## Before You Submit
 
----
-
-## 提功能建议
-
-如果你想提新功能，请先开 Issue，说明：
-
-- 你想解决什么问题
-- 当前有哪些不方便
-- 你希望的行为是什么
-- 这个功能更偏向哪一块（扫描 / 搜索 / 预览 / 管理 / 元数据等）
-
-请尽量先讨论，再开始写代码。
-
----
-
-## 提交 Pull Request
-
-提交 PR 时，请尽量遵守这些原则：
-
-- 一个 PR 只解决一件事
-- 改动尽量小、尽量清晰
-- 不要顺手重构无关代码
-- 如果改了行为或界面，请说明原因
-- 如果修了 Bug，请写清楚复现方式和修复思路
-
----
-在提交前，尽量先自己检查：
+For backend changes, run at least:
 
 ```bash
 npm test
 npm run lint
 ```
 
-如果前端有改动，也请确认前端可以正常启动。
-如果改动涉及 Windows 本地文件流程，优先在 Windows 环境下测试。
+For frontend changes, also run:
+
+```bash
+npm run lint:frontend
+npm run build:frontend
+```
+
+If your change touches folder selection, scanning, previews, or opening files in external applications, please walk through the affected workflow on Windows 10 or Windows 11 when possible.
+
+Thanks for contributing.
