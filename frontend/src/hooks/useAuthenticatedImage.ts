@@ -4,7 +4,7 @@ import { api } from '../services/apiService';
 type UseAuthenticatedImageResult = {
   src: string | null;
   isLoading: boolean;
-  error: string | null;
+  error: boolean;
 };
 
 const blobCache = new Map<string, Blob>();
@@ -40,13 +40,13 @@ async function fetchImageBlob(url: string): Promise<Blob> {
 export function useAuthenticatedImage(url: string | null | undefined): UseAuthenticatedImageResult {
   const [src, setSrc] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!url) {
       setSrc(null);
       setIsLoading(false);
-      setError(null);
+      setError(false);
       return;
     }
 
@@ -63,17 +63,17 @@ export function useAuthenticatedImage(url: string | null | undefined): UseAuthen
       }
 
       setIsLoading(true);
-      setError(null);
+      setError(false);
       try {
         const blob = await fetchImageBlob(requestUrl);
         if (cancelled) return;
         objectUrl = URL.createObjectURL(blob);
         setSrc(objectUrl);
-      } catch (err) {
+      } catch {
         if (cancelled) return;
         setSrc(null);
         failedAtCache.set(requestUrl, Date.now());
-        setError(err instanceof Error ? err.message : '加载图片失败');
+        setError(true);
       } finally {
         if (!cancelled) {
           setIsLoading(false);

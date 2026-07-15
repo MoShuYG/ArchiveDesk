@@ -14,7 +14,7 @@ export const historyService = {
   recordView(itemId: string) {
     const item = itemModel.getItemById(itemId);
     if (!item || item.deleted) {
-      throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, "Item not found.");
+      throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, "未找到资源。");
     }
     return historyModel.recordView(itemId);
   },
@@ -22,7 +22,7 @@ export const historyService = {
   upsertProgress(itemId: string, progress: Record<string, unknown>) {
     const item = itemModel.getItemById(itemId);
     if (!item || item.deleted) {
-      throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, "Item not found.");
+      throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, "未找到资源。");
     }
     return historyModel.upsertProgress(itemId, progress);
   },

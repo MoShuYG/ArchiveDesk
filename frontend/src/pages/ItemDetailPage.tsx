@@ -1,22 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon, DocumentTextIcon, InformationCircleIcon, TagIcon } from '@heroicons/react/24/outline';
-import type { Item, ItemType } from '../types/api';
+import type { Item } from '../types/api';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { PreviewPanel } from '../components/library/PreviewPanel';
 import { historyService } from '../services/historyService';
 import { itemService } from '../services/itemService';
 import { cn } from '../utils/cn';
+import { useI18n } from '../hooks/useI18n';
+import type { MessageKey } from '../i18n';
+import { ITEM_TYPE_LABEL_KEYS } from '../i18n/labels';
 
-const TYPE_LABELS: Record<ItemType, string> = {
-  video: '视频',
-  audio: '音频',
-  image: '图片',
-  novel: '小说',
-  booklet: '本子',
-  voice: '音色',
-  other: '文件',
-};
+type DetailError = { value: unknown; fallbackKey: MessageKey };
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -28,15 +23,16 @@ function formatSize(bytes: number): string {
 export function ItemDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { locale, t, localizeError } = useI18n();
 
   const [item, setItem] = useState<Item | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<DetailError | null>(null);
 
   useEffect(() => {
     if (!id) {
       setIsLoading(false);
-      setError('缺少资源 ID');
+      setError({ value: null, fallbackKey: 'errors.missingItemId' });
       return;
     }
 
@@ -51,7 +47,7 @@ export function ItemDetailPage() {
         historyService.recordView(loaded.id).catch(() => {});
       } catch (err) {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : '加载资源失败');
+        setError({ value: err, fallbackKey: 'errors.loadItemFailed' });
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -66,60 +62,58 @@ export function ItemDetailPage() {
   }, [id]);
 
   if (isLoading) {
-    return <LoadingSpinner fullScreen message="正在加载资源..." />;
+    return <LoadingSpinner fullScreen message={t('detail.loading')} />;
   }
 
   if (error) {
-    return <CenteredState iconClassName="text-destructive" title={error} actionLabel="返回" onAction={() => navigate(-1)} />;
+    return <CenteredState iconClassName="text-destructive" title={localizeError(error.value, error.fallbackKey)} actionLabel={t('common.back')} onAction={() => navigate(-1)} />;
   }
 
   if (!item) {
-    return <CenteredState iconClassName="text-muted-foreground" title="资源不存在" actionLabel="返回" onAction={() => navigate(-1)} />;
+    return <CenteredState iconClassName="text-muted-foreground" title={t('detail.notFound')} actionLabel={t('common.back')} onAction={() => navigate(-1)} />;
   }
 
   return (
-    <div className="flex flex-col gap-8 pb-12 lg:flex-row">
+    <div className="flex flex-col gap-6 pb-10 lg:flex-row">
       <div className="flex flex-1 flex-col gap-4">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex w-fit items-center gap-2 rounded-lg bg-secondary/50 px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          className="app-button-secondary w-fit"
         >
           <ArrowLeftIcon className="h-4 w-4" />
-          返回
+          {t('common.back')}
         </button>
 
-        <section className="relative flex min-h-[420px] overflow-hidden rounded-2xl border border-border bg-black/5 shadow-inner dark:bg-black/40">
-          <PreviewPanel itemId={item.id} title={item.title} path={item.path} type={item.type} size={item.size} ext={item.ext} />
-        </section>
+        <PreviewPanel itemId={item.id} title={item.title} path={item.path} type={item.type} size={item.size} ext={item.ext} />
       </div>
 
-      <aside className="w-full shrink-0 space-y-5 lg:w-[420px]">
-        <header className="space-y-3">
+      <aside className="w-full shrink-0 space-y-4 lg:w-[390px]">
+        <header className="app-surface space-y-3 p-5">
           <div className="flex items-center gap-2">
-            <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{TYPE_LABELS[item.type]}</span>
+            <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{t(ITEM_TYPE_LABEL_KEYS[item.type])}</span>
             <span className="rounded-full border border-border bg-secondary px-2.5 py-1 text-xs text-muted-foreground">{formatSize(item.size)}</span>
           </div>
-          <h1 className="break-all text-2xl font-bold text-foreground">{item.title}</h1>
+          <h1 className="break-all text-xl font-bold leading-snug text-foreground sm:text-2xl">{item.title}</h1>
         </header>
 
-        <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <section className="app-surface p-5">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
             <InformationCircleIcon className="h-5 w-5 text-muted-foreground" />
-            基本信息
+            {t('detail.basicInfo')}
           </h2>
           <div className="space-y-3 text-sm">
-            <InfoRow label="文件路径" value={item.path} isPath />
-            {item.ext ? <InfoRow label="扩展名" value={item.ext} /> : null}
-            <InfoRow label="创建时间" value={new Date(item.createdAt).toLocaleString()} />
-            <InfoRow label="更新时间" value={new Date(item.updatedAt).toLocaleString()} />
+            <InfoRow label={t('detail.filePath')} value={item.path} isPath />
+            {item.ext ? <InfoRow label={t('detail.extension')} value={item.ext} /> : null}
+            <InfoRow label={t('detail.createdAt')} value={new Date(item.createdAt).toLocaleString(locale)} />
+            <InfoRow label={t('detail.updatedAt')} value={new Date(item.updatedAt).toLocaleString(locale)} />
           </div>
         </section>
 
         {item.tags.length > 0 ? (
-          <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <section className="app-surface p-5">
             <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
               <TagIcon className="h-5 w-5 text-muted-foreground" />
-              标签
+              {t('detail.tags')}
             </h2>
             <div className="flex flex-wrap gap-2">
               {item.tags.map((tag) => (
@@ -132,16 +126,16 @@ export function ItemDetailPage() {
         ) : null}
 
         {Object.keys(item.metadata).length > 0 ? (
-          <details className="group rounded-xl border border-border bg-card shadow-sm">
+          <details className="app-surface group overflow-hidden">
             <summary className="flex cursor-pointer list-none items-center justify-between p-5 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
               <span className="flex items-center gap-2">
                 <DocumentTextIcon className="h-5 w-5 text-muted-foreground" />
-                元数据
+                {t('detail.metadata')}
               </span>
-              <span className="transition-transform group-open:rotate-180">▼</span>
+              <span className="text-xs text-muted-foreground transition-transform group-open:rotate-180">▼</span>
             </summary>
             <div className="border-t border-border p-5 pt-4">
-              <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-border/50 bg-secondary/30 p-4 font-mono text-xs text-muted-foreground">
+              <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-border bg-secondary/30 p-4 font-mono text-xs leading-6 text-muted-foreground">
                 {JSON.stringify(item.metadata, null, 2)}
               </pre>
             </div>
@@ -154,10 +148,10 @@ export function ItemDetailPage() {
 
 function CenteredState({ title, iconClassName, actionLabel, onAction }: { title: string; iconClassName: string; actionLabel: string; onAction: () => void }) {
   return (
-    <div className="flex h-[50vh] flex-col items-center justify-center">
+    <div className="app-surface flex min-h-[50vh] flex-col items-center justify-center p-8 text-center">
       <InformationCircleIcon className={cn('mb-4 h-12 w-12', iconClassName)} />
       <p className="text-lg font-medium text-foreground">{title}</p>
-      <button onClick={onAction} className="mt-6 text-primary hover:underline">
+      <button onClick={onAction} className="app-button-secondary mt-6">
         {actionLabel}
       </button>
     </div>

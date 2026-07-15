@@ -42,7 +42,7 @@ export const itemController = {
         await this.streamItemFile(req, res);
         return;
       }
-      throw new AppError(404, ErrorCodes.NOT_FOUND, "Thumbnail not available for this item.");
+      throw new AppError(404, ErrorCodes.NOT_FOUND, "此资源没有可用的缩略图。");
     }
     res.status(200).setHeader("Content-Type", thumbnail.contentType).send(thumbnail.buffer);
   },

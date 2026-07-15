@@ -35,7 +35,7 @@ export const libraryService = {
   async updateRoot(rootId: string, input: { name?: string; path?: string }) {
     const existingRoot = libraryModel.getRootById(rootId);
     if (!existingRoot) {
-      throw new AppError(404, ErrorCodes.NOT_FOUND, "Root not found.");
+      throw new AppError(404, ErrorCodes.NOT_FOUND, "未找到资源库。");
     }
     let targetPath = existingRoot.path;
     let targetNormalized = existingRoot.normalizedPath;
@@ -55,7 +55,7 @@ export const libraryService = {
       normalizedPath: targetNormalized
     });
     if (!updated) {
-      throw new AppError(404, ErrorCodes.NOT_FOUND, "Root not found.");
+      throw new AppError(404, ErrorCodes.NOT_FOUND, "未找到资源库。");
     }
     searchService.invalidateFolderIndex(rootId);
     scanJobService.refreshWatchers();
@@ -72,7 +72,7 @@ export const libraryService = {
   async deleteRoot(rootId: string) {
     const deleted = libraryModel.deleteRoot(rootId);
     if (deleted === 0) {
-      throw new AppError(404, ErrorCodes.NOT_FOUND, "Root not found.");
+      throw new AppError(404, ErrorCodes.NOT_FOUND, "未找到资源库。");
     }
     await folderService.removeRootData(rootId);
     searchService.invalidateFolderIndex(rootId);

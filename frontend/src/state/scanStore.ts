@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import type { ScanTask } from '../types/api';
 import { scanService } from '../services/scanService';
-import { ApiRequestError } from '../services/apiService';
+import type { LocalizedError } from '../i18n';
 
 interface ScanState {
   currentTask: ScanTask | null;
   isScanning: boolean;
-  error: string | null;
+  error: LocalizedError | null;
   _pollTimer: ReturnType<typeof setInterval> | null;
 
   startFullScan: () => Promise<void>;
@@ -30,8 +30,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
       const enqueued = await scanService.startFullScan();
       await get().trackTask(enqueued.taskId);
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : 'Failed to start full scan.';
-      set({ isScanning: false, error: message });
+      set({ isScanning: false, error: { value: err, fallbackKey: 'errors.startFullScanFailed' } });
     }
   },
 
@@ -40,8 +39,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
       const enqueued = await scanService.startIncrementalScan();
       await get().trackTask(enqueued.taskId);
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : 'Failed to start incremental scan.';
-      set({ isScanning: false, error: message });
+      set({ isScanning: false, error: { value: err, fallbackKey: 'errors.startIncrementalScanFailed' } });
     }
   },
 
@@ -59,8 +57,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
       }
       get().pollTask(taskId);
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : 'Failed to load scan status.';
-      set({ isScanning: false, error: message });
+      set({ isScanning: false, error: { value: err, fallbackKey: 'errors.loadScanFailed' } });
       throw err;
     }
   },
@@ -79,8 +76,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
           set({ isScanning: false });
         }
       } catch (err) {
-        const message = err instanceof ApiRequestError ? err.message : 'Failed to load scan status.';
-        set({ error: message });
+        set({ error: { value: err, fallbackKey: 'errors.loadScanFailed' } });
         get().stopPolling();
         set({ isScanning: false });
       }

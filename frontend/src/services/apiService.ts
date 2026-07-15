@@ -101,7 +101,7 @@ async function parseErrorBody(response: Response): Promise<ApiError> {
   } catch {
     return {
       code: 'UNKNOWN',
-      message: `HTTP ${response.status}`,
+      message: `Request failed (HTTP status: ${response.status}).`,
       details: null,
       requestId: null,
     };

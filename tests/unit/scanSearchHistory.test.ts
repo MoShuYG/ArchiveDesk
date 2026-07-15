@@ -5,6 +5,8 @@ import { historyService } from "../../src/api/history/historyService";
 import { libraryService } from "../../src/api/library/libraryService";
 import { scanService } from "../../src/api/scan/scanService";
 import { searchService } from "../../src/api/search/searchService";
+import { scanModel } from "../../src/models/scanModel";
+import { scanJobService } from "../../src/services/scanJobService";
 
 async function waitForScanTask(taskId: string): Promise<any> {
   const timeoutAt = Date.now() + 10_000;
@@ -19,6 +21,58 @@ async function waitForScanTask(taskId: string): Promise<any> {
 }
 
 describe("scan/search/history flow", () => {
+  test("should end unfinished scan tasks after the service restarts", () => {
+    const runningTask = scanModel.createTask("full");
+    scanModel.markRunning(runningTask.id);
+    const queuedTask = scanModel.createTask("incremental");
+
+    const recoveredCount = scanJobService.recoverInterruptedTasks();
+
+    expect(recoveredCount).toBe(2);
+    for (const taskId of [runningTask.id, queuedTask.id]) {
+      const task = scanModel.getTaskById(taskId);
+      expect(task?.status).toBe("failed");
+      expect(task?.finishedAt).not.toBeNull();
+      expect(task?.errorMessage).toContain("服务已重启");
+    }
+  });
+
+  test("should persist progress before a root finishes scanning", async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "lsm-progress-"));
+    await Promise.all(
+      Array.from({ length: 205 }, (_, index) => fs.writeFile(path.join(tempRoot, `file-${index}.bin`), ""))
+    );
+    await libraryService.createRoot({ name: "progress-root", path: tempRoot });
+    const progressSnapshots: Array<{ taskId: string; totalFiles: number; processedFiles: number }> = [];
+    const updateProgress = scanModel.updateProgress.bind(scanModel);
+    const updateProgressSpy = jest.spyOn(scanModel, "updateProgress").mockImplementation((taskId, progress) => {
+      progressSnapshots.push({
+        taskId,
+        totalFiles: progress.totalFiles,
+        processedFiles: progress.processedFiles
+      });
+      updateProgress(taskId, progress);
+    });
+
+    try {
+      const task = scanService.enqueueFullScan();
+      const result = await waitForScanTask(task.id);
+
+      expect(result.status).toBe("success");
+      expect(
+        progressSnapshots.some(
+          (progress) =>
+            progress.taskId === task.id &&
+            progress.processedFiles > 0 &&
+            progress.processedFiles < progress.totalFiles
+        )
+      ).toBe(true);
+    } finally {
+      updateProgressSpy.mockRestore();
+      await fs.rm(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   test("should scan files, search by name and persist history progress", async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "lsm-scan-"));
     const textPath = path.join(tempRoot, "story.txt");

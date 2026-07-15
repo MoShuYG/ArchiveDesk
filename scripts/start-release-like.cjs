@@ -7,12 +7,12 @@ const serverEntry = path.join(repoRoot, "dist", "src", "server.js");
 const frontendIndex = path.join(repoRoot, "frontend", "dist", "index.html");
 
 if (!fs.existsSync(serverEntry)) {
-  console.error("Missing build output: dist/src/server.js");
+  console.error("缺少后端构建产物：dist/src/server.js");
   process.exit(1);
 }
 
 if (!fs.existsSync(frontendIndex)) {
-  console.error("Missing build output: frontend/dist/index.html");
+  console.error("缺少前端构建产物：frontend/dist/index.html");
   process.exit(1);
 }
 

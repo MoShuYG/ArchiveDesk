@@ -1,13 +1,20 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  ArchiveBoxIcon,
   ArrowRightEndOnRectangleIcon,
+  CircleStackIcon,
+  EyeIcon,
   KeyIcon,
+  MagnifyingGlassIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../../state/authStore';
+import { useI18n } from '../../hooks/useI18n';
 import { cn } from '../../utils/cn';
 import { validatePassword } from '../../utils/validation';
+import { LanguageToggle } from '../common/LanguageToggle';
+import type { MessageKey } from '../../i18n';
 
 export function Login() {
   const navigate = useNavigate();
@@ -17,11 +24,12 @@ export function Login() {
   const error = useAuthStore((s) => s.error);
   const needsSetup = useAuthStore((s) => s.needsSetup);
   const clearError = useAuthStore((s) => s.clearError);
+  const { t, localizeError } = useI18n();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [validationError, setValidationError] = useState('');
+  const [validationError, setValidationError] = useState<MessageKey | null>(null);
   const [isSetupMode, setIsSetupMode] = useState(false);
 
   const showSetup = needsSetup || isSetupMode;
@@ -29,16 +37,16 @@ export function Login() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     clearError();
-    setValidationError('');
+    setValidationError(null);
 
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.valid) {
-      setValidationError(passwordValidation.message);
+      setValidationError(passwordValidation.messageKey);
       return;
     }
 
     if (showSetup && password !== confirmPassword) {
-      setValidationError('两次输入的密码不一致');
+      setValidationError('auth.passwordMismatch');
       return;
     }
 
@@ -50,119 +58,150 @@ export function Login() {
       }
       navigate('/', { replace: true });
     } catch {
-      // 错误消息已在状态仓库中处理。
+      // The store retains the structured error for locale-aware rendering.
     }
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+    <div className="relative min-h-dvh overflow-hidden bg-slate-950">
+      <LanguageToggle className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6" />
       <div
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-1000 dark:brightness-75"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-90"
         style={{ backgroundImage: 'url(/assets/bg.png)' }}
+        aria-hidden="true"
       />
-      <div className="absolute inset-0 z-0 bg-background/40 backdrop-blur-[2px] transition-all duration-700 dark:bg-black/60" />
+      <div className="absolute inset-0 bg-slate-950/60" aria-hidden="true" />
 
-      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl border border-white/20 bg-white/60 shadow-2xl backdrop-blur-2xl transition-all dark:border-white/10 dark:bg-black/40">
-        <div className="px-8 pb-6 pt-10 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/30">
-            <KeyIcon className="h-8 w-8" />
+      <div className="relative z-10 mx-auto grid min-h-dvh w-full max-w-7xl items-center gap-12 px-4 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_440px] lg:px-12">
+        <section className="hidden max-w-2xl text-white lg:block" aria-label={t('auth.productIntro')}>
+          <div className="mb-10 inline-flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500 text-white shadow-lg shadow-blue-950/40">
+              <ArchiveBoxIcon className="h-6 w-6" />
+            </span>
+            <span className="text-xl font-bold tracking-tight">ArchiveDesk</span>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-            {showSetup ? '初始化 ArchiveDesk' : '欢迎使用 ArchiveDesk'}
-          </h1>
-          <p className="mt-2 text-sm text-foreground/70">
-            {showSetup ? '首次使用请先设置密码以保护 ArchiveDesk。' : '输入密码登录 ArchiveDesk。'}
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-200">{t('auth.workspaceLabel')}</p>
+          <h2 className="mt-4 max-w-xl text-4xl font-bold leading-tight tracking-tight xl:text-5xl">
+            {t('auth.heroTitle')}
+          </h2>
+          <p className="mt-5 max-w-xl text-base leading-7 text-slate-300">
+            {t('auth.heroDescription')}
           </p>
-        </div>
+          <div className="mt-9 grid max-w-xl gap-5 sm:grid-cols-3">
+            <Feature icon={<CircleStackIcon className="h-5 w-5" />} title={t('auth.featureManage')} />
+            <Feature icon={<MagnifyingGlassIcon className="h-5 w-5" />} title={t('auth.featureSearch')} />
+            <Feature icon={<EyeIcon className="h-5 w-5" />} title={t('auth.featurePreview')} />
+          </div>
+        </section>
 
-        <form onSubmit={handleSubmit} className="space-y-6 px-8 py-6">
-          <div className="space-y-4">
-            <InputField
-              id="login-username"
-              label="用户名（可选）"
-              value={username}
-              onChange={setUsername}
-              placeholder="默认：local"
-              autoComplete="username"
-              icon={<UserIcon className="h-5 w-5 text-muted-foreground group-focus-within:text-primary" />}
-            />
-
-            <InputField
-              id="login-password"
-              label="密码"
-              value={password}
-              onChange={setPassword}
-              placeholder="请输入密码"
-              type="password"
-              autoComplete={showSetup ? 'new-password' : 'current-password'}
-              required
-              icon={<KeyIcon className="h-5 w-5 text-muted-foreground group-focus-within:text-primary" />}
-            />
-
-            {showSetup ? (
-              <InputField
-                id="login-confirm-password"
-                label="确认密码"
-                value={confirmPassword}
-                onChange={setConfirmPassword}
-                placeholder="再次输入密码"
-                type="password"
-                autoComplete="new-password"
-                required
-                icon={<KeyIcon className="h-5 w-5 text-muted-foreground group-focus-within:text-primary" />}
-              />
-            ) : null}
+        <main className="app-surface w-full max-w-md justify-self-center overflow-hidden bg-card/95 shadow-2xl shadow-slate-950/35 backdrop-blur-md">
+          <div className="px-6 pb-4 pt-7 sm:px-8 sm:pt-8">
+            <div className="mb-7 flex items-center gap-3 lg:hidden">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+                <ArchiveBoxIcon className="h-5 w-5" />
+              </span>
+              <span className="text-lg font-bold tracking-tight text-foreground">ArchiveDesk</span>
+            </div>
+            <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <KeyIcon className="h-5 w-5" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              {showSetup ? t('auth.initializeTitle') : t('auth.welcomeTitle')}
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {showSetup ? t('auth.initializeDescription') : t('auth.welcomeDescription')}
+            </p>
           </div>
 
-          {validationError || error ? (
-            <div className="animate-in slide-in-from-top-2 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm font-medium text-destructive backdrop-blur-md">
-              {validationError || error}
-            </div>
-          ) : null}
+          <form onSubmit={handleSubmit} className="space-y-5 px-6 pb-7 pt-4 sm:px-8">
+            <div className="space-y-4">
+              <InputField
+                id="login-username"
+                label={t('auth.usernameOptional')}
+                value={username}
+                onChange={setUsername}
+                placeholder={t('auth.defaultUsername')}
+                autoComplete="username"
+                icon={<UserIcon className="h-5 w-5" />}
+              />
 
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={cn(
-                'flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/80 px-4 py-3 font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] hover:shadow-primary/40 active:scale-[0.98]',
-                isLoading && 'cursor-not-allowed opacity-70 hover:scale-100'
-              )}
-            >
+              <InputField
+                id="login-password"
+                label={t('auth.password')}
+                value={password}
+                onChange={setPassword}
+                placeholder={t('auth.passwordPlaceholder')}
+                type="password"
+                autoComplete={showSetup ? 'new-password' : 'current-password'}
+                required
+                icon={<KeyIcon className="h-5 w-5" />}
+              />
+
+              {showSetup ? (
+                <InputField
+                  id="login-confirm-password"
+                  label={t('auth.confirmPassword')}
+                  value={confirmPassword}
+                  onChange={setConfirmPassword}
+                  placeholder={t('auth.confirmPasswordPlaceholder')}
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  icon={<KeyIcon className="h-5 w-5" />}
+                />
+              ) : null}
+            </div>
+
+            {validationError || error ? (
+              <div className="app-alert-error" role="alert" aria-live="polite">
+                {validationError ? t(validationError) : error ? localizeError(error.value, error.fallbackKey) : ''}
+              </div>
+            ) : null}
+
+            <button type="submit" disabled={isLoading} className={cn('app-button-primary min-h-11 w-full', isLoading && 'cursor-not-allowed')}>
               {isLoading ? (
                 <span className="flex items-center gap-2">
-                  <svg className="h-4 w-4 animate-spin text-primary-foreground" viewBox="0 0 24 24" fill="none">
+                  <svg className="h-4 w-4 animate-spin text-primary-foreground" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
                   </svg>
-                  处理中...
+                  {t('auth.processing')}
                 </span>
               ) : (
                 <>
-                  {showSetup ? '设置并登录' : '登录'}
+                  {showSetup ? t('auth.setupAndSignIn') : t('auth.signIn')}
                   <ArrowRightEndOnRectangleIcon className="h-5 w-5" />
                 </>
               )}
             </button>
-          </div>
-        </form>
+          </form>
 
-        {!needsSetup ? (
-          <div className="border-t border-white/20 bg-background/20 px-8 pb-8 pt-6 text-center dark:border-white/5 dark:bg-black/20">
-            <button
-              type="button"
-              onClick={() => {
-                setIsSetupMode((v) => !v);
-                setValidationError('');
-                clearError();
-              }}
-              className="text-sm font-medium text-foreground/60 transition-colors hover:text-primary hover:underline"
-            >
-              {isSetupMode ? '返回登录' : '首次使用？设置密码'}
-            </button>
-          </div>
-        ) : null}
+          {!needsSetup ? (
+            <div className="border-t border-border bg-secondary/35 px-6 py-4 text-center sm:px-8">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSetupMode((v) => !v);
+                  setValidationError(null);
+                  clearError();
+                }}
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+              >
+                {isSetupMode ? t('auth.backToSignIn') : t('auth.firstUseSetup')}
+              </button>
+            </div>
+          ) : null}
+        </main>
       </div>
+    </div>
+  );
+}
+
+function Feature({ icon, title }: { icon: ReactNode; title: string }) {
+  return (
+    <div className="flex items-center gap-2 border-l border-white/20 pl-3 text-sm font-medium text-slate-100">
+      <span className="text-blue-300">{icon}</span>
+      {title}
     </div>
   );
 }
@@ -189,12 +228,12 @@ function InputField({
   icon: ReactNode;
 }) {
   return (
-    <div className="space-y-2">
-      <label htmlFor={id} className="pl-1 text-sm font-medium text-foreground/80">
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="text-sm font-medium text-foreground">
         {label}
       </label>
       <div className="group relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 transition-colors">
+        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground transition-colors group-focus-within:text-primary">
           {icon}
         </div>
         <input
@@ -205,7 +244,7 @@ function InputField({
           placeholder={placeholder}
           autoComplete={autoComplete}
           required={required}
-          className="w-full rounded-xl border border-white/30 bg-white/40 py-3 pl-12 pr-4 text-foreground shadow-inner transition-all focus:border-primary/50 focus:bg-white/60 focus:outline-none focus:ring-4 focus:ring-primary/20 dark:border-white/10 dark:bg-black/40 dark:focus:bg-black/60"
+          className="app-control min-h-11 w-full pl-11 pr-3"
         />
       </div>
     </div>

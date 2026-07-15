@@ -3,6 +3,9 @@ import { ArrowTopRightOnSquareIcon, DocumentTextIcon } from '@heroicons/react/24
 import type { ItemType } from '../../types/api';
 import { useFilePreview } from '../../hooks/useFilePreview';
 import { itemService } from '../../services/itemService';
+import { DocxPreview } from './DocxPreview';
+import { PdfPreview } from './PdfPreview';
+import { useI18n } from '../../hooks/useI18n';
 
 type PreviewPanelProps = {
   itemId?: string;
@@ -14,10 +17,12 @@ type PreviewPanelProps = {
   emptyText?: string;
 };
 
-export function PreviewPanel({ itemId, title, path, type, size, ext, emptyText = '请选择一个文件进行预览。' }: PreviewPanelProps) {
-  const [openError, setOpenError] = useState<string | null>(null);
+export function PreviewPanel({ itemId, title, path, type, size, ext, emptyText }: PreviewPanelProps) {
+  const { t, localizeError } = useI18n();
+  const [openError, setOpenError] = useState<unknown | null>(null);
   const [opening, setOpening] = useState(false);
   const preview = useFilePreview({ itemId, type, size, ext });
+  const resolvedEmptyText = emptyText ?? t('preview.selectFile');
 
   async function openExternal() {
     if (!itemId) return;
@@ -26,17 +31,17 @@ export function PreviewPanel({ itemId, title, path, type, size, ext, emptyText =
     try {
       await itemService.openItemExternally(itemId);
     } catch (error) {
-      setOpenError(error instanceof Error ? error.message : '打开文件失败。');
+      setOpenError(error);
     } finally {
       setOpening(false);
     }
   }
 
   return (
-    <section className="flex h-full min-h-[380px] flex-col rounded-xl border border-border bg-card">
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+    <section className="app-surface flex h-full min-h-[380px] flex-col overflow-hidden">
+      <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground">{title ?? '预览'}</p>
+          <p className="truncate text-sm font-semibold text-foreground">{title ?? t('preview.title')}</p>
           {path ? <p className="truncate text-xs text-muted-foreground">{path}</p> : null}
         </div>
         {itemId ? (
@@ -44,36 +49,37 @@ export function PreviewPanel({ itemId, title, path, type, size, ext, emptyText =
             type="button"
             onClick={() => void openExternal()}
             disabled={opening}
-            className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-secondary disabled:opacity-50"
+            className="app-button-secondary min-h-9 px-3 text-xs"
           >
             <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" />
-            {opening ? '正在打开...' : '在 Windows 中打开'}
+            {opening ? t('preview.opening') : t('preview.openInWindows')}
           </button>
         ) : null}
       </header>
 
-      <div className="flex flex-1 items-center justify-center p-4">
-        {!itemId ? <Empty text={emptyText} /> : null}
-        {itemId && preview.isLoading ? <Empty text="正在加载预览..." /> : null}
-        {itemId && preview.tooLarge ? <Empty text="该文件过大，无法在浏览器中预览，请改用 Windows 打开。" /> : null}
+      <div className="flex flex-1 items-center justify-center bg-secondary/15 p-4">
+        {!itemId ? <Empty text={resolvedEmptyText} /> : null}
+        {itemId && preview.isLoading ? <Empty text={t('preview.loading')} /> : null}
+        {itemId && preview.tooLarge ? <Empty text={t('preview.tooLarge')} /> : null}
         {itemId && preview.error ? <Empty text={preview.error} /> : null}
         {itemId && !preview.isLoading && !preview.error && !preview.tooLarge ? (
           <div className="flex h-full w-full items-center justify-center">
-            {preview.mode === 'image' && preview.src ? <img src={preview.src} alt={title ?? '预览'} className="h-full w-full object-contain" /> : null}
+            {preview.mode === 'image' && preview.src ? <img src={preview.src} alt={title ?? t('preview.title')} className="h-full w-full object-contain" /> : null}
             {preview.mode === 'video' && preview.src ? <video src={preview.src} controls className="h-full w-full bg-black object-contain" /> : null}
             {preview.mode === 'audio' && preview.src ? <audio src={preview.src} controls className="w-full" /> : null}
-            {preview.mode === 'pdf' && preview.src ? <iframe src={preview.src} title={title ?? 'PDF 预览'} className="h-full w-full rounded border border-border" /> : null}
+            {preview.mode === 'pdf' && preview.data ? <PdfPreview data={preview.data} title={title ?? t('preview.pdfTitle')} /> : null}
+            {preview.mode === 'docx' && preview.data ? <DocxPreview data={preview.data} title={title ?? t('preview.docxTitle')} /> : null}
             {preview.mode === 'text' ? (
-              <pre className="h-full w-full overflow-auto whitespace-pre-wrap rounded border border-border bg-secondary/20 p-3 text-xs text-foreground">
+              <pre className="h-full w-full overflow-auto whitespace-pre-wrap rounded-lg border border-border bg-card p-4 text-xs leading-6 text-foreground">
                 {preview.text ?? ''}
               </pre>
             ) : null}
-            {preview.mode === 'unsupported' ? <Empty text="当前文件类型暂不支持浏览器预览。" /> : null}
+            {preview.mode === 'unsupported' ? <Empty text={t('preview.unsupported')} /> : null}
           </div>
         ) : null}
       </div>
 
-      {openError ? <div className="border-t border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">{openError}</div> : null}
+      {openError ? <div className="border-t border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">{localizeError(openError, 'errors.openFileFailed')}</div> : null}
     </section>
   );
 }
@@ -81,7 +87,7 @@ export function PreviewPanel({ itemId, title, path, type, size, ext, emptyText =
 function Empty({ text }: { text: string }) {
   return (
     <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
-      <DocumentTextIcon className="h-10 w-10 opacity-40" />
+      <DocumentTextIcon className="h-10 w-10 opacity-50" />
       <p className="max-w-sm text-sm">{text}</p>
     </div>
   );

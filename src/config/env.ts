@@ -75,7 +75,7 @@ function readNumberEnv(name: string, fallback: number): number {
   }
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
-    throw new Error(`Invalid numeric env: ${name}`);
+    throw new Error(`环境变量 ${name} 的值必须为有效数字。`);
   }
   return parsed;
 }
@@ -116,6 +116,6 @@ export const env: AppEnv = {
 
 if (env.nodeEnv === "production") {
   if (env.jwtAccessSecret.length < 16 || env.jwtRefreshSecret.length < 16) {
-    throw new Error("JWT secrets are too short for production.");
+    throw new Error("生产环境中的 JWT 密钥长度不能少于 16 个字符。");
   }
 }

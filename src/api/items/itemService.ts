@@ -161,7 +161,7 @@ export const itemService = {
   getItemById(itemId: string): ItemRecord {
     const item = itemModel.getItemById(itemId);
     if (!item || item.deleted) {
-      throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, "Item not found.");
+      throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, "未找到资源。");
     }
     return item;
   },
@@ -176,18 +176,18 @@ export const itemService = {
     const file = await getStreamFileResponseData(item.path, req, {
       displayName: `${item.title}${item.ext ? `.${item.ext}` : ""}`,
       ext: item.ext,
-      notFoundMessage: "Item file not found on disk."
+      notFoundMessage: "磁盘上未找到资源文件。"
     });
     return { item, stat: file.stat, mimeType: file.mimeType, range: file.range };
   },
 
   async getThumbnailDataByItem(item: ItemRecord): Promise<{ buffer: Buffer; contentType: string } | null> {
     const { stat } = await ensureRegularFile(item.path, {
-      notFound: "Item file not found on disk.",
-      invalidType: "Item path is not a file."
+      notFound: "磁盘上未找到资源文件。",
+      invalidType: "资源路径不是文件。"
     });
     if (!stat.isFile()) {
-      throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, "Item path is not a file.");
+      throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, "资源路径不是文件。");
     }
     return buildThumbnail(item);
   },

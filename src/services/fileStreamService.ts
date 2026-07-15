@@ -74,10 +74,10 @@ export async function ensureRegularFile(
   try {
     stat = await fs.stat(absolutePath);
   } catch {
-    throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, messages?.notFound ?? "Target file not found.");
+    throw new AppError(404, ErrorCodes.ITEM_NOT_FOUND, messages?.notFound ?? "未找到目标文件。");
   }
   if (!stat.isFile()) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, messages?.invalidType ?? "Target path is not a file.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, messages?.invalidType ?? "目标路径不是文件。");
   }
   return { absolutePath, stat };
 }
@@ -100,13 +100,13 @@ export async function getStreamFileResponseData(
   });
   const ext = normalizeExtension(options?.ext ?? getExtensionFromPath(absolutePath));
   if (options?.allowedExtensions && (!ext || !options.allowedExtensions.has(ext))) {
-    throw new AppError(415, ErrorCodes.VALIDATION_ERROR, options.unsupportedMessage ?? "This file type is not supported.");
+    throw new AppError(415, ErrorCodes.VALIDATION_ERROR, options.unsupportedMessage ?? "暂不支持该文件类型。");
   }
 
   const rangeHeader = req.header("range");
   const range = rangeHeader ? getRangeBounds(rangeHeader, stat.size) : null;
   if (rangeHeader && !range) {
-    throw new AppError(416, ErrorCodes.VALIDATION_ERROR, "Invalid Range header.");
+    throw new AppError(416, ErrorCodes.VALIDATION_ERROR, "Range 请求头无效。");
   }
 
   return {

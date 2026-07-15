@@ -47,14 +47,14 @@ function verifyAccessToken(token: string): AccessTokenPayload {
   try {
     const payload = jwt.verify(token, env.jwtAccessSecret) as AccessTokenPayload;
     if (payload.typ !== "access") {
-      throw new AppError(401, ErrorCodes.UNAUTHORIZED, "Invalid access token.");
+      throw new AppError(401, ErrorCodes.UNAUTHORIZED, "访问令牌无效。");
     }
     return payload;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      throw new AppError(401, ErrorCodes.TOKEN_EXPIRED, "Access token expired.");
+      throw new AppError(401, ErrorCodes.TOKEN_EXPIRED, "访问令牌已过期。");
     }
-    throw new AppError(401, ErrorCodes.UNAUTHORIZED, "Invalid access token.");
+    throw new AppError(401, ErrorCodes.UNAUTHORIZED, "访问令牌无效。");
   }
 }
 
@@ -62,14 +62,14 @@ function verifyRefreshToken(token: string): RefreshTokenPayload {
   try {
     const payload = jwt.verify(token, env.jwtRefreshSecret) as RefreshTokenPayload;
     if (payload.typ !== "refresh") {
-      throw new AppError(401, ErrorCodes.UNAUTHORIZED, "Invalid refresh token.");
+      throw new AppError(401, ErrorCodes.UNAUTHORIZED, "刷新令牌无效。");
     }
     return payload;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      throw new AppError(401, ErrorCodes.TOKEN_EXPIRED, "Refresh token expired.");
+      throw new AppError(401, ErrorCodes.TOKEN_EXPIRED, "刷新令牌已过期。");
     }
-    throw new AppError(401, ErrorCodes.UNAUTHORIZED, "Invalid refresh token.");
+    throw new AppError(401, ErrorCodes.UNAUTHORIZED, "刷新令牌无效。");
   }
 }
 
@@ -84,11 +84,11 @@ function isSessionLocked(session: Pick<SessionRecord, "id" | "locked" | "lastAct
 export const authService = {
   async setupPassword(input: { username?: string; password: string }): Promise<{ userId: number; username: string }> {
     if (input.password.length < 8) {
-      throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Password must be at least 8 characters.");
+      throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "密码长度不能少于 8 个字符。");
     }
     const existing = userModel.getSingleUser();
     if (existing) {
-      throw new AppError(409, ErrorCodes.AUTH_ALREADY_INITIALIZED, "Password already initialized.");
+      throw new AppError(409, ErrorCodes.AUTH_ALREADY_INITIALIZED, "密码已完成初始化。");
     }
     const passwordHash = await argon2.hash(input.password, {
       type: argon2.argon2id,
@@ -111,14 +111,14 @@ export const authService = {
   }> {
     const user = userModel.getSingleUser();
     if (!user) {
-      throw new AppError(400, ErrorCodes.AUTH_NOT_INITIALIZED, "Password is not initialized yet.");
+      throw new AppError(400, ErrorCodes.AUTH_NOT_INITIALIZED, "密码尚未初始化。");
     }
     if (input.username && input.username !== user.username) {
-      throw new AppError(401, ErrorCodes.INVALID_CREDENTIALS, "Invalid credentials.");
+      throw new AppError(401, ErrorCodes.INVALID_CREDENTIALS, "用户名或密码错误。");
     }
     const valid = await argon2.verify(user.passwordHash, input.password);
     if (!valid) {
-      throw new AppError(401, ErrorCodes.INVALID_CREDENTIALS, "Invalid credentials.");
+      throw new AppError(401, ErrorCodes.INVALID_CREDENTIALS, "用户名或密码错误。");
     }
     const sessionId = uuidv4();
     const refreshToken = signRefreshToken(user.id, sessionId);
@@ -156,19 +156,19 @@ export const authService = {
     const payload = verifyRefreshToken(refreshToken);
     const session = userModel.getSessionById(payload.sid);
     if (!session || session.revokedAt) {
-      throw new AppError(401, ErrorCodes.UNAUTHORIZED, "Session not found or revoked.");
+      throw new AppError(401, ErrorCodes.UNAUTHORIZED, "会话不存在或已被撤销。");
     }
     if (session.expiresAt <= Date.now()) {
       userModel.revokeSession(session.id);
-      throw new AppError(401, ErrorCodes.TOKEN_EXPIRED, "Refresh token expired.");
+      throw new AppError(401, ErrorCodes.TOKEN_EXPIRED, "刷新令牌已过期。");
     }
     if (isSessionLocked(session)) {
-      throw new AppError(423, ErrorCodes.SESSION_LOCKED, "Session is locked.");
+      throw new AppError(423, ErrorCodes.SESSION_LOCKED, "会话已锁定。");
     }
     const hashed = hashToken(refreshToken);
     if (hashed !== session.refreshTokenHash) {
       userModel.revokeSession(session.id);
-      throw new AppError(401, ErrorCodes.UNAUTHORIZED, "Refresh token does not match session.");
+      throw new AppError(401, ErrorCodes.UNAUTHORIZED, "刷新令牌与当前会话不匹配。");
     }
     const newRefreshToken = signRefreshToken(Number(payload.sub), session.id);
     const newExpiresAt = Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000;
@@ -186,15 +186,15 @@ export const authService = {
     const payload = verifyAccessToken(token);
     const session = userModel.getSessionById(payload.sid);
     if (!session || session.revokedAt) {
-      throw new AppError(401, ErrorCodes.UNAUTHORIZED, "Session invalid.");
+      throw new AppError(401, ErrorCodes.UNAUTHORIZED, "会话无效。");
     }
     if (session.expiresAt <= Date.now()) {
       userModel.revokeSession(session.id);
-      throw new AppError(401, ErrorCodes.TOKEN_EXPIRED, "Session expired.");
+      throw new AppError(401, ErrorCodes.TOKEN_EXPIRED, "会话已过期。");
     }
     const locked = isSessionLocked(session);
     if (locked && !options?.allowLocked) {
-      throw new AppError(423, ErrorCodes.SESSION_LOCKED, "Session locked.");
+      throw new AppError(423, ErrorCodes.SESSION_LOCKED, "会话已锁定。");
     }
     if (!locked) {
       userModel.touchSession(session.id);
@@ -216,7 +216,7 @@ export const authService = {
   } {
     const session = userModel.getSessionByIdWithUser(sessionId);
     if (!session || session.revokedAt) {
-      throw new AppError(404, ErrorCodes.NOT_FOUND, "Session not found.");
+      throw new AppError(404, ErrorCodes.NOT_FOUND, "会话不存在。");
     }
     return {
       sessionId: session.id,

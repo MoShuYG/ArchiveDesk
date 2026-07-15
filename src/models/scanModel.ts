@@ -67,7 +67,7 @@ export const scanModel = {
     ).run(id, type, now);
     const task = this.getTaskById(id);
     if (!task) {
-      throw new Error("Failed to create scan task.");
+      throw new Error("创建扫描任务失败。");
     }
     return task;
   },
@@ -124,6 +124,18 @@ export const scanModel = {
   markFailed(taskId: string, message: string): void {
     const db = getDb();
     db.prepare("UPDATE scan_tasks SET status = 'failed', finished_at = ?, error_message = ? WHERE id = ?").run(Date.now(), message, taskId);
+  },
+
+  failUnfinishedTasks(message: string): number {
+    const db = getDb();
+    const result = db
+      .prepare(
+        `UPDATE scan_tasks
+         SET status = 'failed', finished_at = ?, error_message = ?
+         WHERE status IN ('queued', 'running')`
+      )
+      .run(Date.now(), message);
+    return result.changes;
   }
 };
 

@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import type { LibraryRoot } from '../types/api';
 import { libraryService } from '../services/libraryService';
-import { ApiRequestError } from '../services/apiService';
+import type { LocalizedError } from '../i18n';
 
 interface LibraryState {
   roots: LibraryRoot[];
   isLoading: boolean;
-  error: string | null;
+  error: LocalizedError | null;
 
   fetchRoots: () => Promise<void>;
   addRoot: (name: string, path: string) => Promise<LibraryRoot>;
@@ -26,8 +26,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
       const roots = await libraryService.listRoots();
       set({ roots, isLoading: false });
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : 'Failed to load library roots.';
-      set({ isLoading: false, error: message });
+      set({ isLoading: false, error: { value: err, fallbackKey: 'errors.loadLibraryFailed' } });
     }
   },
 
@@ -41,8 +40,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
       }));
       return root;
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : 'Failed to add library root.';
-      set({ isLoading: false, error: message });
+      set({ isLoading: false, error: { value: err, fallbackKey: 'errors.addLibraryFailed' } });
       throw err;
     }
   },
@@ -57,8 +55,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
       }));
       return updated;
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : 'Failed to update library root.';
-      set({ isLoading: false, error: message });
+      set({ isLoading: false, error: { value: err, fallbackKey: 'errors.updateLibraryFailed' } });
       throw err;
     }
   },
@@ -72,8 +69,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
         isLoading: false,
       }));
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : 'Failed to delete library root.';
-      set({ isLoading: false, error: message });
+      set({ isLoading: false, error: { value: err, fallbackKey: 'errors.deleteLibraryFailed' } });
       throw err;
     }
   },

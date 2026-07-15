@@ -1,6 +1,6 @@
 {
   "name": "archivedesk-backend",
-  "version": "0.1.0-alpha.2",
+  "version": "1.0.0",
   "private": true,
   "type": "commonjs",
   "main": "dist/src/server.js",
@@ -30,6 +30,7 @@
     "zod": "^3.24.4"
   },
   "optionalDependencies": {
+    "@ffprobe-installer/ffprobe": "^2.1.2",
     "sharp": "^0.34.1"
   },
   "devDependencies": {

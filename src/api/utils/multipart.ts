@@ -13,11 +13,11 @@ type MultipartParseResult = {
 
 function parseContentTypeBoundary(contentTypeHeader: string | undefined): string {
   if (!contentTypeHeader || !contentTypeHeader.toLowerCase().startsWith("multipart/form-data")) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Content-Type must be multipart/form-data.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Content-Type 必须为 multipart/form-data。");
   }
   const match = /boundary=([^;]+)/i.exec(contentTypeHeader);
   if (!match) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Multipart boundary is missing.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "缺少 multipart 边界参数。");
   }
   return match[1].trim().replace(/^"|"$/g, "");
 }
@@ -30,7 +30,7 @@ async function readRequestBuffer(req: Request, maxBytes: number): Promise<Buffer
     req.on("data", (chunk: Buffer) => {
       totalBytes += chunk.length;
       if (totalBytes > maxBytes) {
-        reject(new AppError(400, ErrorCodes.VALIDATION_ERROR, "Multipart payload too large."));
+        reject(new AppError(400, ErrorCodes.VALIDATION_ERROR, "multipart 请求内容过大。"));
         return;
       }
       chunks.push(chunk);
@@ -101,7 +101,7 @@ export async function parseSingleFileMultipart(req: Request, maxBytes = 6 * 1024
     }
 
     if (parsedFile) {
-      throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Only one file upload is supported.");
+      throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "每次只能上传一个文件。");
     }
     parsedFile = {
       filename: filenameMatch[1],
@@ -111,7 +111,7 @@ export async function parseSingleFileMultipart(req: Request, maxBytes = 6 * 1024
   }
 
   if (!parsedFile) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Multipart file field is required.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "必须提供 multipart 文件字段。");
   }
 
   return {

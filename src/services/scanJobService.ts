@@ -17,6 +17,8 @@ type MutableProgress = {
   warnings: string[];
 };
 
+const PROGRESS_UPDATE_INTERVAL = 100;
+
 async function walkFiles(dirPath: string, files: string[]): Promise<void> {
   const entries = await fsp.readdir(dirPath, { withFileTypes: true });
   for (const entry of entries) {
@@ -31,10 +33,17 @@ async function walkFiles(dirPath: string, files: string[]): Promise<void> {
   }
 }
 
-async function scanRoot(rootId: string, rootPath: string, progress: MutableProgress, mode: ScanTaskType): Promise<void> {
+async function scanRoot(
+  rootId: string,
+  rootPath: string,
+  progress: MutableProgress,
+  mode: ScanTaskType,
+  persistProgress: () => void
+): Promise<void> {
   const files: string[] = [];
   await walkFiles(rootPath, files);
   progress.totalFiles += files.length;
+  persistProgress();
   const seenPaths: string[] = [];
   const snapshots =
     mode === "incremental"
@@ -59,6 +68,9 @@ async function scanRoot(rootId: string, rootPath: string, progress: MutableProgr
     ) {
       progress.processedFiles += 1;
       seenPaths.push(filePath);
+      if (progress.processedFiles % PROGRESS_UPDATE_INTERVAL === 0) {
+        persistProgress();
+      }
       continue;
     }
 
@@ -91,6 +103,9 @@ async function scanRoot(rootId: string, rootPath: string, progress: MutableProgr
     }
     progress.processedFiles += 1;
     seenPaths.push(filePath);
+    if (progress.processedFiles % PROGRESS_UPDATE_INTERVAL === 0) {
+      persistProgress();
+    }
   }
 
   progress.deletedFiles += itemModel.markMissingAsDeleted(rootId, seenPaths);
@@ -109,14 +124,14 @@ async function executeTask(task: ScanTaskRecord): Promise<void> {
   try {
     const roots = libraryModel.listRoots();
     for (const root of roots) {
-      await scanRoot(root.id, root.path, progress, task.type);
+      await scanRoot(root.id, root.path, progress, task.type, () => scanModel.updateProgress(task.id, progress));
       searchService.invalidateFolderIndex(root.id);
       scanModel.updateProgress(task.id, progress);
     }
     scanModel.updateProgress(task.id, progress);
     scanModel.markSuccess(task.id);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown scan failure";
+    const message = error instanceof Error ? error.message : "未知扫描错误。";
     scanModel.markFailed(task.id, message);
   }
 }
@@ -138,6 +153,10 @@ class ScanJobService {
 
   getTask(taskId: string): ScanTaskRecord | null {
     return scanModel.getTaskById(taskId);
+  }
+
+  recoverInterruptedTasks(): number {
+    return scanModel.failUnfinishedTasks("扫描服务已重启，未完成的任务已中止，请重新发起扫描。");
   }
 
   refreshWatchers(): void {
@@ -171,7 +190,7 @@ class ScanJobService {
         });
         this.watchers.set(root.id, watcher);
       } catch (error) {
-        console.warn(`watch setup failed for root ${root.path}: ${error instanceof Error ? error.message : "unknown error"}`);
+        console.warn(`无法监控资源库 ${root.path}：${error instanceof Error ? error.message : "未知错误。"}`);
       }
     }
   }

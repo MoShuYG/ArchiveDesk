@@ -1,89 +1,40 @@
 import { useEffect, useState } from 'react';
 import type { ItemType } from '../types/api';
 import { api, getAccessToken } from '../services/apiService';
+import {
+  getPreviewLoadStrategy,
+  isDirectPreviewExtension,
+  normalizePreviewExtension,
+  resolvePreviewMode,
+  resolvePreviewModeFromMetadata,
+  type PreviewMode,
+} from '../utils/filePreview';
+import { useI18n } from './useI18n';
 
 const MAX_TEXT_PREVIEW_BYTES = 10 * 1024 * 1024;
-const TEXT_PREVIEW_EXTENSIONS = new Set(['txt', 'md', 'json', 'csv']);
-const DIRECT_PREVIEW_EXTENSIONS = new Set([
-  'jpg',
-  'jpeg',
-  'png',
-  'gif',
-  'webp',
-  'bmp',
-  'avif',
-  'pdf',
-  'txt',
-  'md',
-  'json',
-  'csv',
-  'mp3',
-  'mp4',
-  'mov',
-  'webm',
-  'wav',
-  'flac',
-  'ogg',
-  'm4a',
-  'aac',
-]);
-
-export type PreviewMode = 'image' | 'video' | 'audio' | 'text' | 'pdf' | 'unsupported';
+const MAX_PDF_PREVIEW_BYTES = 64 * 1024 * 1024;
+const MAX_DOCX_PREVIEW_BYTES = 20 * 1024 * 1024;
 
 export type FilePreviewState = {
   mode: PreviewMode;
   src: string | null;
   text: string | null;
+  data: ArrayBuffer | null;
   isLoading: boolean;
   tooLarge: boolean;
   error: string | null;
 };
 
-function normalizeExt(ext?: string | null): string | null {
-  if (!ext) return null;
-  const normalized = ext.replace(/^\./, '').trim().toLowerCase();
-  return normalized || null;
+function getPreviewByteLimit(mode: PreviewMode): number | null {
+  if (mode === 'text') return MAX_TEXT_PREVIEW_BYTES;
+  if (mode === 'pdf') return MAX_PDF_PREVIEW_BYTES;
+  if (mode === 'docx') return MAX_DOCX_PREVIEW_BYTES;
+  return null;
 }
 
-function canDirectPreview(ext?: string | null): boolean {
-  const normalizedExt = normalizeExt(ext);
-  return normalizedExt ? DIRECT_PREVIEW_EXTENSIONS.has(normalizedExt) : false;
-}
-
-function deriveMode(type: ItemType, mimeType: string, ext?: string | null): PreviewMode {
-  const normalizedExt = normalizeExt(ext);
-  if (normalizedExt === 'tga') return 'unsupported';
-  if (mimeType.startsWith('image/')) return 'image';
-  if (mimeType.startsWith('video/')) return 'video';
-  if (mimeType.startsWith('audio/')) return 'audio';
-  if (mimeType === 'application/pdf') return 'pdf';
-  if (mimeType.startsWith('text/') || mimeType.includes('json') || mimeType.includes('xml') || mimeType.includes('yaml')) return 'text';
-  if (normalizedExt === 'pdf') return 'pdf';
-  if (normalizedExt && TEXT_PREVIEW_EXTENSIONS.has(normalizedExt)) return 'text';
-  if (type === 'image') return 'image';
-  if (type === 'video') return 'video';
-  if (type === 'audio' || type === 'voice') return 'audio';
-  if (type === 'novel') return 'text';
-  return 'unsupported';
-}
-
-function deriveModeFromMetadata(type?: ItemType, ext?: string | null): PreviewMode {
-  const normalizedExt = normalizeExt(ext);
-  if (normalizedExt === 'tga') return 'unsupported';
-  if (normalizedExt === 'pdf') return 'pdf';
-  if (normalizedExt && TEXT_PREVIEW_EXTENSIONS.has(normalizedExt)) return 'text';
-  if (normalizedExt && ['mp4', 'mov', 'webm'].includes(normalizedExt)) return 'video';
-  if (normalizedExt && ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac'].includes(normalizedExt)) return 'audio';
-  if (normalizedExt && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif'].includes(normalizedExt)) return 'image';
-  if (type === 'image') return 'image';
-  if (type === 'video') return 'video';
-  if (type === 'audio' || type === 'voice') return 'audio';
-  if (type === 'novel') return 'text';
-  return 'unsupported';
-}
-
-function isStreamableMode(mode: PreviewMode): boolean {
-  return mode === 'video' || mode === 'audio' || mode === 'pdf';
+function isOverPreviewLimit(mode: PreviewMode, size?: number | null): boolean {
+  const limit = getPreviewByteLimit(mode);
+  return limit !== null && typeof size === 'number' && size > limit;
 }
 
 function buildProtectedPreviewUrl(input: {
@@ -107,6 +58,19 @@ function buildProtectedPreviewUrl(input: {
   return null;
 }
 
+function emptyState(overrides?: Partial<FilePreviewState>): FilePreviewState {
+  return {
+    mode: 'unsupported',
+    src: null,
+    text: null,
+    data: null,
+    isLoading: false,
+    tooLarge: false,
+    error: null,
+    ...overrides,
+  };
+}
+
 export function useFilePreview(input: {
   itemId?: string | null;
   rootId?: string | null;
@@ -115,27 +79,18 @@ export function useFilePreview(input: {
   size?: number | null;
   ext?: string | null;
 }): FilePreviewState {
-  const [state, setState] = useState<FilePreviewState>({
-    mode: 'unsupported',
-    src: null,
-    text: null,
-    isLoading: false,
-    tooLarge: false,
-    error: null,
-  });
+  const { t, localizeError } = useI18n();
+  const [state, setState] = useState<FilePreviewState>(() => emptyState());
 
-  const metadataMode = deriveModeFromMetadata(input.type, input.ext);
-  const directPreviewAvailable = Boolean(!input.itemId && input.rootId && input.relPath && canDirectPreview(input.ext));
-  const canAttemptPreview = input.itemId ? normalizeExt(input.ext) !== 'tga' : directPreviewAvailable;
-  const tooLargeForText = metadataMode === 'text' && typeof input.size === 'number' && input.size > MAX_TEXT_PREVIEW_BYTES;
-  const streamUrl = canAttemptPreview && !tooLargeForText && isStreamableMode(metadataMode) ? buildProtectedPreviewUrl(input) : null;
+  const metadataMode = resolvePreviewModeFromMetadata(input.type, input.ext);
+  const loadStrategy = getPreviewLoadStrategy(metadataMode);
+  const directPreviewAvailable = Boolean(!input.itemId && input.rootId && input.relPath && isDirectPreviewExtension(input.ext));
+  const canAttemptPreview = input.itemId ? normalizePreviewExtension(input.ext) !== 'tga' : directPreviewAvailable;
+  const tooLarge = isOverPreviewLimit(metadataMode, input.size);
+  const streamUrl = canAttemptPreview && !tooLarge && loadStrategy === 'stream' ? buildProtectedPreviewUrl(input) : null;
 
   useEffect(() => {
-    if (!canAttemptPreview || tooLargeForText) {
-      return;
-    }
-
-    if (streamUrl || isStreamableMode(metadataMode)) {
+    if (!canAttemptPreview || tooLarge || loadStrategy === 'stream' || loadStrategy === 'none') {
       return;
     }
 
@@ -143,65 +98,68 @@ export function useFilePreview(input: {
     let objectUrl: string | null = null;
 
     async function load() {
-      setState((prev) => ({
-        ...prev,
-        isLoading: true,
-        error: null,
-        tooLarge: false,
-      }));
+      setState(
+        emptyState({
+          mode: metadataMode,
+          isLoading: true,
+        }),
+      );
+
       try {
         const blob = input.itemId
           ? await api.getBlob(`/api/items/${input.itemId}/file`)
           : await api.getBlob(`/api/library/roots/${input.rootId}/file`, { relPath: input.relPath ?? '' });
         if (cancelled) return;
-        const mimeType = blob.type || 'application/octet-stream';
-        const mode = deriveMode(input.type ?? 'other', mimeType, input.ext);
+
+        const mode = resolvePreviewMode(input.type ?? 'other', blob.type || 'application/octet-stream', input.ext);
+        if (isOverPreviewLimit(mode, blob.size)) {
+          setState(emptyState({ tooLarge: true }));
+          return;
+        }
 
         if (mode === 'text') {
           const text = await blob.text();
           if (cancelled) return;
-          setState({
-            mode: 'text',
-            src: null,
-            text: text.slice(0, 200_000),
-            isLoading: false,
-            tooLarge: false,
-            error: null,
-          });
+          setState(
+            emptyState({
+              mode: 'text',
+              text: text.slice(0, 200_000),
+            }),
+          );
+          return;
+        }
+
+        if (mode === 'pdf' || mode === 'docx') {
+          const data = await blob.arrayBuffer();
+          if (cancelled) return;
+          setState(
+            emptyState({
+              mode,
+              data,
+            }),
+          );
           return;
         }
 
         if (mode === 'unsupported') {
-          setState({
-            mode: 'unsupported',
-            src: null,
-            text: null,
-            isLoading: false,
-            tooLarge: false,
-            error: null,
-          });
+          setState(emptyState());
           return;
         }
 
         objectUrl = URL.createObjectURL(blob);
-        setState({
-          mode,
-          src: objectUrl,
-          text: null,
-          isLoading: false,
-          tooLarge: false,
-          error: null,
-        });
+        setState(
+          emptyState({
+            mode,
+            src: objectUrl,
+          }),
+        );
       } catch (error) {
         if (cancelled) return;
-        setState({
-          mode: 'unsupported',
-          src: null,
-          text: null,
-          isLoading: false,
-          tooLarge: false,
-          error: error instanceof Error ? error.message : '加载预览失败。',
-        });
+        setState(
+          emptyState({
+            error: localizeError(error, 'errors.loadPreviewFailed'),
+          }),
+        );
       }
     }
 
@@ -212,39 +170,26 @@ export function useFilePreview(input: {
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [canAttemptPreview, input.ext, input.itemId, input.relPath, input.rootId, input.type, metadataMode, streamUrl, tooLargeForText]);
+  }, [canAttemptPreview, input.ext, input.itemId, input.relPath, input.rootId, input.type, loadStrategy, localizeError, metadataMode, tooLarge]);
 
   if (!canAttemptPreview) {
-    return {
-      mode: 'unsupported',
-      src: null,
-      text: null,
-      isLoading: false,
-      tooLarge: false,
-      error: null,
-    };
+    return emptyState();
   }
 
-  if (tooLargeForText) {
-    return {
-      mode: 'unsupported',
-      src: null,
-      text: null,
-      isLoading: false,
-      tooLarge: true,
-      error: null,
-    };
+  if (tooLarge) {
+    return emptyState({ tooLarge: true });
   }
 
-  if (isStreamableMode(metadataMode)) {
-    return {
+  if (loadStrategy === 'none') {
+    return emptyState();
+  }
+
+  if (loadStrategy === 'stream') {
+    return emptyState({
       mode: streamUrl ? metadataMode : 'unsupported',
       src: streamUrl,
-      text: null,
-      isLoading: false,
-      tooLarge: false,
-      error: streamUrl ? null : '当前预览会话已失效，请重新登录后再试。',
-    };
+      error: streamUrl ? null : t('errors.previewSessionExpired'),
+    });
   }
 
   return state;

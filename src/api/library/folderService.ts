@@ -68,7 +68,7 @@ function normalizeRelPath(input: string | undefined): string {
     return "";
   }
   if (path.isAbsolute(input)) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Folder relative path must not be absolute.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "文件夹相对路径不能是绝对路径。");
   }
   const segments = input
     .replace(/\\/g, "/")
@@ -76,7 +76,7 @@ function normalizeRelPath(input: string | undefined): string {
     .map((segment) => segment.trim())
     .filter((segment) => segment.length > 0 && segment !== ".");
   if (segments.some((segment) => segment === "..")) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Folder relative path contains invalid segments.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "文件夹相对路径包含无效路径段。");
   }
   return segments.join("/");
 }
@@ -104,7 +104,7 @@ function resolvePathWithinRoot(rootPath: string, relPath: string): string {
   const rootComparable = normalizeComparablePath(normalizedRoot);
   const absoluteComparable = normalizeComparablePath(absolutePath);
   if (absoluteComparable !== rootComparable && !absoluteComparable.startsWith(`${rootComparable}${path.sep}`)) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Folder path escapes root directory.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "文件夹路径超出资源库根目录。");
   }
   return absolutePath;
 }
@@ -119,10 +119,10 @@ async function ensureDirectoryExists(dirPath: string): Promise<void> {
   try {
     stat = await fs.stat(dirPath);
   } catch {
-    throw new AppError(404, ErrorCodes.NOT_FOUND, "Folder not found.");
+    throw new AppError(404, ErrorCodes.NOT_FOUND, "未找到文件夹。");
   }
   if (!stat.isDirectory()) {
-    throw new AppError(404, ErrorCodes.NOT_FOUND, "Folder not found.");
+    throw new AppError(404, ErrorCodes.NOT_FOUND, "未找到文件夹。");
   }
 }
 
@@ -146,7 +146,7 @@ function buildItemCoverUrl(itemId: string): string {
 function findRootOrThrow(rootId: string) {
   const root = libraryModel.getRootById(rootId);
   if (!root) {
-    throw new AppError(404, ErrorCodes.NOT_FOUND, "Root not found.");
+    throw new AppError(404, ErrorCodes.NOT_FOUND, "未找到资源库。");
   }
   return root;
 }
@@ -192,12 +192,12 @@ async function resolveFolderCover(rootId: string, folderAbsolutePath: string, re
 function ensureItemInFolderSubtree(rootId: string, folderPrefixPath: string, itemId: string): void {
   const item = itemModel.getItemById(itemId);
   if (!item || item.deleted || item.type !== "image" || item.rootId !== rootId) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Selected item cannot be used as a cover.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "所选资源不能用作封面。");
   }
   const folderComparable = normalizeComparablePath(folderPrefixPath);
   const itemComparable = normalizeComparablePath(item.path);
   if (!itemComparable.startsWith(folderComparable)) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Selected item is outside the folder subtree.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "所选资源不在该文件夹及其子目录内。");
   }
 }
 
@@ -385,7 +385,7 @@ export const folderService = {
 
     if (input.mode === "manual_item") {
       if (!input.itemId) {
-        throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "itemId is required for manual_item cover.");
+        throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "手动指定封面时必须提供 itemId。");
       }
       ensureItemInFolderSubtree(root.id, ensureSubtreePrefix(folderAbsolutePath), input.itemId);
       await folderCoverStore.upsertEntry({
@@ -423,10 +423,10 @@ export const folderService = {
 
     const extension = ALLOWED_UPLOAD_MIME.get(input.mimeType.toLowerCase());
     if (!extension) {
-      throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Unsupported cover mime type.");
+      throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "不支持该封面文件的 MIME 类型。");
     }
     if (input.buffer.length === 0 || input.buffer.length > 5 * 1024 * 1024) {
-      throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Cover file size is invalid.");
+      throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "封面文件大小无效。");
     }
 
     const previous = await folderCoverStore.getEntry(root.id, relPath);
@@ -453,17 +453,17 @@ export const folderService = {
     const relPath = normalizeRelPath(input.relPath);
     const entry = await folderCoverStore.getEntry(input.rootId, relPath);
     if (!entry || entry.mode !== "manual_upload" || !entry.uploadedFile) {
-      throw new AppError(404, ErrorCodes.NOT_FOUND, "Uploaded cover not found.");
+      throw new AppError(404, ErrorCodes.NOT_FOUND, "未找到已上传的封面。");
     }
     const filePath = folderCoverStore.getUploadedFileAbsolutePath(input.rootId, entry.uploadedFile);
     let stat;
     try {
       stat = await fs.stat(filePath);
     } catch {
-      throw new AppError(404, ErrorCodes.NOT_FOUND, "Uploaded cover not found.");
+      throw new AppError(404, ErrorCodes.NOT_FOUND, "未找到已上传的封面。");
     }
     if (!stat.isFile()) {
-      throw new AppError(404, ErrorCodes.NOT_FOUND, "Uploaded cover not found.");
+      throw new AppError(404, ErrorCodes.NOT_FOUND, "未找到已上传的封面。");
     }
 
     const ext = path.extname(entry.uploadedFile).replace(".", "").toLowerCase();

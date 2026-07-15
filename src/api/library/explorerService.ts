@@ -61,7 +61,7 @@ function normalizeRelPath(input: string | undefined): string {
     return "";
   }
   if (path.isAbsolute(input)) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Relative path must not be absolute.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "相对路径不能是绝对路径。");
   }
   const segments = input
     .replace(/\\/g, "/")
@@ -69,7 +69,7 @@ function normalizeRelPath(input: string | undefined): string {
     .map((segment) => segment.trim())
     .filter((segment) => segment.length > 0 && segment !== ".");
   if (segments.some((segment) => segment === "..")) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Relative path contains invalid segments.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "相对路径包含无效路径段。");
   }
   return segments.join("/");
 }
@@ -81,7 +81,7 @@ function resolvePathWithinRoot(rootPath: string, relPath: string): string {
   const rootComparable = normalizeComparablePath(normalizedRoot);
   const absoluteComparable = normalizeComparablePath(absolutePath);
   if (absoluteComparable !== rootComparable && !absoluteComparable.startsWith(`${rootComparable}${path.sep}`)) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Path escapes root directory.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "路径超出资源库根目录。");
   }
   return absolutePath;
 }
@@ -91,10 +91,10 @@ async function ensureDirectoryExists(dirPath: string): Promise<void> {
   try {
     stat = await fs.stat(dirPath);
   } catch {
-    throw new AppError(404, ErrorCodes.NOT_FOUND, "Folder not found.");
+    throw new AppError(404, ErrorCodes.NOT_FOUND, "未找到文件夹。");
   }
   if (!stat.isDirectory()) {
-    throw new AppError(404, ErrorCodes.NOT_FOUND, "Folder not found.");
+    throw new AppError(404, ErrorCodes.NOT_FOUND, "未找到文件夹。");
   }
 }
 
@@ -161,7 +161,7 @@ async function resolveFolderCover(rootId: string, folderAbsolutePath: string, re
 function findRootOrThrow(rootId: string) {
   const root = libraryModel.getRootById(rootId);
   if (!root) {
-    throw new AppError(404, ErrorCodes.NOT_FOUND, "Root not found.");
+    throw new AppError(404, ErrorCodes.NOT_FOUND, "未找到资源库。");
   }
   return root;
 }
@@ -330,6 +330,7 @@ export const explorerService = {
         "webp",
         "bmp",
         "pdf",
+        "docx",
         "txt",
         "md",
         "json",

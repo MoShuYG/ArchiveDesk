@@ -17,7 +17,7 @@ export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }
 
-export function internalError(message = "Internal server error", details?: unknown): AppError {
+export function internalError(message = "服务器内部错误。", details?: unknown): AppError {
   return new AppError(500, ErrorCodes.INTERNAL_ERROR, message, details);
 }
 

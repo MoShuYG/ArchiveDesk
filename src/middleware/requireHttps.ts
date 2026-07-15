@@ -9,7 +9,7 @@ export function requireHttpsInProduction(req: Request, _res: Response, next: Nex
     return;
   }
   if (!req.secure) {
-    next(new AppError(403, ErrorCodes.FORBIDDEN, "HTTPS is required for this endpoint."));
+    next(new AppError(403, ErrorCodes.FORBIDDEN, "此接口必须通过 HTTPS 访问。"));
     return;
   }
   next();

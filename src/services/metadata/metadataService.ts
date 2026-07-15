@@ -10,20 +10,55 @@ export type MetadataResult = {
 let sharpModule: null | { metadata: (filePath: string) => Promise<Record<string, unknown>> } = null;
 let sharpInitialized = false;
 let sharpUnavailableWarningEmitted = false;
+let imageParseWarningEmitted = false;
+const MAX_IMAGE_HEADER_BYTES = 512 * 1024;
+const FFPROBE_TIMEOUT_MS = 10_000;
+const FFPROBE_MAX_BUFFER_BYTES = 4 * 1024 * 1024;
+const FFPROBE_SHOW_ENTRIES =
+  "format=duration,bit_rate,format_name:stream=codec_type,codec_name,duration,bit_rate,width,height,avg_frame_rate,sample_rate,channels";
+let ffprobeCommand: string | null = null;
+
+function resolveFfprobeCommand(): string {
+  if (ffprobeCommand) {
+    return ffprobeCommand;
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const bundledFfprobe = require("@ffprobe-installer/ffprobe") as { path?: unknown };
+    if (typeof bundledFfprobe.path === "string" && bundledFfprobe.path.trim()) {
+      ffprobeCommand = bundledFfprobe.path;
+      return ffprobeCommand;
+    }
+  } catch {
+    // 可选依赖不可用时继续尝试系统 PATH。
+  }
+
+  ffprobeCommand = "ffprobe";
+  return ffprobeCommand;
+}
 
 function runFfprobe(filePath: string): { data: any | null; warning?: string } {
-  const args = ["-v", "error", "-print_format", "json", "-show_format", "-show_streams", filePath];
-  const result = spawnSync("ffprobe", args, { encoding: "utf8" });
+  const args = ["-v", "error", "-print_format", "json", "-show_entries", FFPROBE_SHOW_ENTRIES, filePath];
+  const result = spawnSync(resolveFfprobeCommand(), args, {
+    encoding: "utf8",
+    timeout: FFPROBE_TIMEOUT_MS,
+    maxBuffer: FFPROBE_MAX_BUFFER_BYTES,
+    windowsHide: true
+  });
   if (result.error) {
-    return { data: null, warning: "ffprobe unavailable, metadata extraction downgraded." };
+    if ((result.error as NodeJS.ErrnoException).code === "ETIMEDOUT") {
+      return { data: null, warning: "ffprobe 解析超时，已跳过该媒体文件的详细元数据。" };
+    }
+    return { data: null, warning: "ffprobe 不可用，媒体元数据提取已降级。" };
   }
   if (result.status !== 0) {
-    return { data: null, warning: "ffprobe failed to parse this media file." };
+    return { data: null, warning: "ffprobe 无法解析该媒体文件。" };
   }
   try {
     return { data: JSON.parse(result.stdout) };
   } catch {
-    return { data: null, warning: "ffprobe output parse failed." };
+    return { data: null, warning: "ffprobe 输出解析失败。" };
   }
 }
 
@@ -113,7 +148,15 @@ function parseJpegSize(buffer: Buffer): { width: number; height: number } | null
 
 async function extractImageMetadataFallback(filePath: string): Promise<Record<string, unknown>> {
   try {
-    const buffer = await fs.readFile(filePath);
+    const fileHandle = await fs.open(filePath, "r");
+    let buffer: Buffer;
+    try {
+      const headerBuffer = Buffer.allocUnsafe(MAX_IMAGE_HEADER_BYTES);
+      const { bytesRead } = await fileHandle.read(headerBuffer, 0, MAX_IMAGE_HEADER_BYTES, 0);
+      buffer = headerBuffer.subarray(0, bytesRead);
+    } finally {
+      await fileHandle.close();
+    }
     const png = parsePngSize(buffer);
     if (png) {
       return { width: png.width, height: png.height, format: "png" };
@@ -137,7 +180,15 @@ function emitSharpUnavailableWarningOnce(): string[] {
     return [];
   }
   sharpUnavailableWarningEmitted = true;
-  return ["sharp unavailable or failed, image metadata extraction downgraded."];
+  return ["Sharp 组件不可用，图片元数据提取已降级。"];
+}
+
+function emitImageParseWarningOnce(): string[] {
+  if (imageParseWarningEmitted) {
+    return [];
+  }
+  imageParseWarningEmitted = true;
+  return ["部分图片无法解析，已跳过其详细元数据。"];
 }
 
 async function ensureSharpModule(): Promise<boolean> {
@@ -176,9 +227,10 @@ async function extractImageMetadata(filePath: string): Promise<MetadataResult> {
       };
     } catch {
       const fallback = await extractImageMetadataFallback(filePath);
+      const recoveredDimensions = typeof fallback.width === "number" && typeof fallback.height === "number";
       return {
         metadata: fallback,
-        warnings: emitSharpUnavailableWarningOnce()
+        warnings: recoveredDimensions ? [] : emitImageParseWarningOnce()
       };
     }
   }

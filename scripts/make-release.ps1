@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$Version = "0.1.0-alpha.2"
+    [string]$Version = "1.0.0"
 )
 
 $ErrorActionPreference = "Stop"
@@ -33,7 +33,7 @@ function Write-Utf8BomFile {
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$releaseName = "ArchiveDesk-v$Version-win-preview"
+$releaseName = "ArchiveDesk-v$Version-win"
 $releaseRoot = Join-Path $repoRoot "release"
 $stagingDir = Join-Path $releaseRoot $releaseName
 $zipPath = Join-Path $releaseRoot "$releaseName.zip"

@@ -14,7 +14,7 @@ const updateRootSchema = z
     path: z.string().min(1).optional()
   })
   .refine((value) => value.name !== undefined || value.path !== undefined, {
-    message: "At least one field must be provided."
+    message: "至少需要提供一个字段。"
   });
 
 export const libraryController = {

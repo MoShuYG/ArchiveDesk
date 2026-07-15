@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../state/authStore';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -11,7 +12,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     const isLoading = useAuthStore((s) => s.isLoading);
 
     if (isLoading) {
-        return <div>加载中...</div>;
+        return <LoadingSpinner fullScreen />;
     }
 
     if (!isAuthenticated) {

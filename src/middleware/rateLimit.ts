@@ -21,7 +21,7 @@ export function createSimpleRateLimit(windowMs: number, max: number) {
     }
 
     if (current.count >= max) {
-      next(new AppError(429, ErrorCodes.TOO_MANY_REQUESTS, "Too many requests. Please retry later."));
+      next(new AppError(429, ErrorCodes.TOO_MANY_REQUESTS, "请求过于频繁，请稍后重试。"));
       return;
     }
     current.count += 1;

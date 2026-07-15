@@ -43,7 +43,7 @@ function getRequestToken(req: Request): string | null {
 export function requireAuthMiddleware(req: Request, _res: Response, next: NextFunction): void {
   const token = getRequestToken(req);
   if (!token) {
-    next(new AppError(401, ErrorCodes.UNAUTHORIZED, "Missing Bearer token."));
+    next(new AppError(401, ErrorCodes.UNAUTHORIZED, "缺少 Bearer 身份验证令牌。"));
     return;
   }
   const auth = authService.authenticateAccessToken(token, { allowLocked: false });
@@ -54,7 +54,7 @@ export function requireAuthMiddleware(req: Request, _res: Response, next: NextFu
 export function requireAuthAllowLockedMiddleware(req: Request, _res: Response, next: NextFunction): void {
   const token = getRequestToken(req);
   if (!token) {
-    next(new AppError(401, ErrorCodes.UNAUTHORIZED, "Missing Bearer token."));
+    next(new AppError(401, ErrorCodes.UNAUTHORIZED, "缺少 Bearer 身份验证令牌。"));
     return;
   }
   const auth = authService.authenticateAccessToken(token, { allowLocked: true });

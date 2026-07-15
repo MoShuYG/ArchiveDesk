@@ -69,7 +69,7 @@ export const userModel = {
     ).run(username, passwordHash, now, now);
     const created = this.getSingleUser();
     if (!created) {
-      throw new Error("Failed to create user.");
+      throw new Error("创建用户失败。");
     }
     return created;
   },
@@ -95,7 +95,7 @@ export const userModel = {
 
     const created = this.getSessionById(input.id);
     if (!created) {
-      throw new Error("Failed to create session.");
+      throw new Error("创建会话失败。");
     }
     return created;
   },

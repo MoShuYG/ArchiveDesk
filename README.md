@@ -12,7 +12,7 @@
 
 ArchiveDesk，一个本地优先的数字档案管理工具，使用 `React` + `Express` + `SQLite` 构建，面向 Windows 桌面环境。适用于长期整理和检索本地图片、视频、音频、文档等文件，支持离线工作流。
 
-> ⚠️ 当前处于 **Alpha 阶段**（v0.1.0-alpha.2），功能仍在持续完善中。
+> 当前稳定版本为 **正式版 1**（v1.0.0）。
 
 ### ✨ 特性
 
@@ -36,7 +36,7 @@ ArchiveDesk，一个本地优先的数字档案管理工具，使用 `React` + `
   </tbody>
 </table>
 
-从 [GitHub Releases](https://github.com/MoShuYG/ArchiveDesk/releases) 下载预览版压缩包，解压到本地目录，按压缩包内说明运行即可。
+从 [GitHub Releases](https://github.com/MoShuYG/ArchiveDesk/releases) 下载正式版压缩包，解压到本地目录，按压缩包内说明运行即可。
 
 如需从源码运行，请参考下方 [开发](#-开发) 部分。
 

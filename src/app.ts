@@ -80,7 +80,7 @@ export function createApp() {
 
   if (env.nodeEnv === "production") {
     if (!fs.existsSync(frontendIndexPath)) {
-      throw new Error(`Missing frontend build output: ${frontendIndexPath}`);
+      throw new Error(`缺少前端构建产物：${frontendIndexPath}`);
     }
 
     app.use(express.static(frontendDistPath, { index: false }));

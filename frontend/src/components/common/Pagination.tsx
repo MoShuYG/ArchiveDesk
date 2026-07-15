@@ -1,5 +1,6 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { cn } from '../../utils/cn';
+import { useI18n } from '../../hooks/useI18n';
 
 interface PaginationProps {
   page: number;
@@ -9,6 +10,7 @@ interface PaginationProps {
 }
 
 export function Pagination({ page, totalPages, onPageChange, className }: PaginationProps) {
+  const { t } = useI18n();
   if (totalPages <= 1) return null;
 
   function handlePrev() {
@@ -20,12 +22,12 @@ export function Pagination({ page, totalPages, onPageChange, className }: Pagina
   }
 
   return (
-    <nav className={cn('my-8 flex items-center justify-center gap-1', className)} aria-label="分页导航">
+    <nav className={cn('my-2 flex items-center justify-center gap-1', className)} aria-label={t('common.pagination')}>
       <button
         onClick={handlePrev}
         disabled={page <= 1}
-        className="rounded-md p-2 text-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-50"
-        aria-label="上一页"
+        className="app-icon-button"
+        aria-label={t('common.previousPage')}
       >
         <ChevronLeftIcon className="h-5 w-5" />
       </button>
@@ -42,7 +44,7 @@ export function Pagination({ page, totalPages, onPageChange, className }: Pagina
             aria-current={page === value ? 'page' : undefined}
             disabled={page === value}
             className={cn(
-              'h-10 w-10 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'h-9 min-w-9 rounded-lg px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               page === value ? 'pointer-events-none bg-primary text-primary-foreground' : 'text-foreground hover:bg-secondary'
             )}
           >
@@ -54,8 +56,8 @@ export function Pagination({ page, totalPages, onPageChange, className }: Pagina
       <button
         onClick={handleNext}
         disabled={page >= totalPages}
-        className="rounded-md p-2 text-foreground transition-colors hover:bg-secondary disabled:pointer-events-none disabled:opacity-50"
-        aria-label="下一页"
+        className="app-icon-button"
+        aria-label={t('common.nextPage')}
       >
         <ChevronRightIcon className="h-5 w-5" />
       </button>

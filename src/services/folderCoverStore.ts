@@ -137,7 +137,7 @@ class FolderCoverStore {
       const raw = await fs.readFile(this.coverJsonPath, "utf8");
       const parsed = JSON.parse(raw) as FolderCoverDocument;
       if (!Array.isArray(parsed.entries)) {
-        throw new Error("Invalid folder cover data.");
+        throw new Error("文件夹封面数据无效。");
       }
       this.cache = {
         version: CURRENT_VERSION,

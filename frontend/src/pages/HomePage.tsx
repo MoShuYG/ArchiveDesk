@@ -18,24 +18,18 @@ import { historyService } from '../services/historyService';
 import { Pagination } from '../components/common/Pagination';
 import { PreviewModal } from '../components/library/PreviewModal';
 import { useAuthenticatedImage } from '../hooks/useAuthenticatedImage';
+import { resolvePreviewNavigation } from '../utils/previewNavigation';
+import { useI18n } from '../hooks/useI18n';
+import type { MessageKey } from '../i18n';
+import { ITEM_TYPE_LABEL_KEYS } from '../i18n/labels';
 
-const SORT_OPTIONS: Array<{ label: string; value: SearchSort }> = [
-  { label: '相关度', value: 'relevance' },
-  { label: '名称', value: 'name' },
-  { label: '类型', value: 'type' },
-  { label: '修改时间', value: 'updatedAt' },
-  { label: '大小', value: 'size' },
+const SORT_OPTIONS: Array<{ labelKey: MessageKey; value: SearchSort }> = [
+  { labelKey: 'common.relevance', value: 'relevance' },
+  { labelKey: 'common.name', value: 'name' },
+  { labelKey: 'common.type', value: 'type' },
+  { labelKey: 'common.modifiedTime', value: 'updatedAt' },
+  { labelKey: 'common.size', value: 'size' },
 ];
-
-const TYPE_LABELS: Record<string, string> = {
-  image: '图片',
-  video: '视频',
-  audio: '音频',
-  voice: '音色',
-  novel: '小说',
-  booklet: '本子',
-  other: '文件',
-};
 
 function formatSize(size?: number): string {
   if (!size || size <= 0) return '-';
@@ -61,19 +55,19 @@ function SearchEntryThumb({ entry }: { entry: SearchEntry }) {
   const { src, isLoading } = useAuthenticatedImage(thumbnailUrl);
 
   if (src) {
-    return <img src={src} alt={entry.name} className="h-9 w-9 rounded border border-border object-cover" />;
+    return <img src={src} alt={entry.name} className="h-10 w-10 rounded-lg border border-border object-cover" />;
   }
 
   if (isLoading) {
     return (
-      <div className="flex h-9 w-9 items-center justify-center rounded border border-border bg-secondary/20">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/40">
         <ArrowPathIcon className="h-4 w-4 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-9 w-9 items-center justify-center rounded border border-border bg-secondary/20">
+    <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-secondary/40">
       <ResultIcon item={entry} />
     </div>
   );
@@ -81,6 +75,7 @@ function SearchEntryThumb({ entry }: { entry: SearchEntry }) {
 
 export function HomePage() {
   const navigate = useNavigate();
+  const { locale, t, localizeError } = useI18n();
   const [query, setQuery] = useState('');
   const [rootId, setRootId] = useState('');
   const [sortBy, setSortBy] = useState<SearchSort>('relevance');
@@ -91,11 +86,26 @@ export function HomePage() {
   const [results, setResults] = useState<SearchEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
   const [preview, setPreview] = useState<SearchFileEntry | null>(null);
-  const [openError, setOpenError] = useState<string | null>(null);
+  const [openError, setOpenError] = useState<unknown | null>(null);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
+  const previewEntries = useMemo(
+    () => results.filter((entry): entry is SearchFileEntry => entry.kind === 'file'),
+    [results],
+  );
+  const previewNavigation = useMemo(
+    () =>
+      preview
+        ? resolvePreviewNavigation(previewEntries, preview.itemId, {
+            getKey: (entry) => entry.itemId,
+          })
+        : null,
+    [preview, previewEntries],
+  );
+  const previousPreviewEntry = previewNavigation?.previous ?? null;
+  const nextPreviewEntry = previewNavigation?.next ?? null;
 
   useEffect(() => {
     libraryService
@@ -123,7 +133,7 @@ export function HomePage() {
         setTotal(response.total);
       } catch (err) {
         if (canceled) return;
-        setError(err instanceof Error ? err.message : '搜索失败');
+        setError(err);
       } finally {
         if (!canceled) {
           setIsLoading(false);
@@ -141,8 +151,13 @@ export function HomePage() {
     try {
       await itemService.openItemExternally(entry.itemId);
     } catch (err) {
-      setOpenError(err instanceof Error ? err.message : '打开失败');
+      setOpenError(err);
     }
+  }
+
+  function openPreview(entry: SearchFileEntry) {
+    setPreview(entry);
+    historyService.recordView(entry.itemId).catch(() => {});
   }
 
   function handleEntryClick(entry: SearchEntry) {
@@ -150,92 +165,121 @@ export function HomePage() {
       navigate(`/?rootId=${encodeURIComponent(entry.rootId)}&relPath=${encodeURIComponent(entry.relPath)}`);
       return;
     }
-    setPreview(entry);
-    historyService.recordView(entry.itemId).catch(() => { });
+    openPreview(entry);
   }
 
   return (
-    <div className="animate-in fade-in flex flex-col gap-6 pb-8 duration-500">
-      <section className="rounded-2xl border border-white/20 bg-card/80 p-5 shadow-lg shadow-black/5 backdrop-blur-xl transition-all dark:border-white/10 dark:bg-card/50 dark:shadow-black/40">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <MagnifyingGlassIcon className="h-5 w-5" />
+    <div className="flex flex-col gap-5 pb-8">
+      <header className="app-surface overflow-hidden">
+        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <MagnifyingGlassIcon className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('search.title')}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">{t('search.description')}</p>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">全局搜索</h1>
+          {!isLoading ? (
+            <span className="w-fit rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground">
+              {t('search.total', { count: total.toLocaleString(locale) })}
+            </span>
+          ) : null}
         </div>
-        <div className="grid gap-4 lg:grid-cols-[1fr_220px_180px_130px]">
-          <input
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setPage(1);
-            }}
-            placeholder="搜索文件夹名、标题、路径、标签"
-            className="rounded-xl border border-border/50 bg-background/50 px-4 py-2.5 text-sm text-foreground shadow-sm transition-all focus:border-primary/50 focus:bg-background focus:outline-none focus:ring-4 focus:ring-primary/20 dark:border-white/10 dark:bg-black/40"
-          />
+
+        <div className="grid gap-3 border-t border-border bg-secondary/20 p-4 md:grid-cols-2 xl:grid-cols-[minmax(320px,1fr)_220px_180px_130px] sm:p-5">
+          <label className="relative block md:col-span-2 xl:col-span-1">
+            <span className="sr-only">{t('search.keyword')}</span>
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
+              placeholder={t('search.placeholder')}
+              className="app-control w-full pl-9"
+            />
+          </label>
           <select
+            aria-label={t('common.rootFilter')}
             value={rootId}
             onChange={(event) => {
               setRootId(event.target.value);
               setPage(1);
             }}
-            className="rounded-xl border border-border/50 bg-background/50 px-4 py-2.5 text-sm text-foreground shadow-sm transition-all focus:border-primary/50 focus:bg-background focus:outline-none focus:ring-4 focus:ring-primary/20 dark:border-white/10 dark:bg-black/40"
+            className="app-control w-full"
           >
-            <option value="">全部根目录</option>
+            <option value="">{t('common.allRoots')}</option>
             {roots.map((root) => (
               <option key={root.id} value={root.id}>
                 {root.name}
               </option>
             ))}
           </select>
-          <label className="inline-flex items-center gap-2 rounded-xl border border-border/50 bg-background/50 px-4 py-2.5 text-sm text-muted-foreground shadow-sm transition-all focus-within:border-primary/50 focus-within:bg-background focus-within:ring-4 focus-within:ring-primary/20 dark:border-white/10 dark:bg-black/40">
-            <BarsArrowDownIcon className="h-4 w-4" />
+          <label className="relative block">
+            <span className="sr-only">{t('common.sortField')}</span>
+            <BarsArrowDownIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <select
               value={sortBy}
               onChange={(event) => {
                 setSortBy(event.target.value as SearchSort);
                 setPage(1);
               }}
-              className="bg-transparent text-foreground outline-none"
+              className="app-control w-full pl-9"
             >
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.labelKey)}
                 </option>
               ))}
             </select>
           </label>
           <select
+            aria-label={t('common.sortDirection')}
             value={order}
             onChange={(event) => {
               setOrder(event.target.value as 'asc' | 'desc');
               setPage(1);
             }}
-            className="rounded-xl border border-border/50 bg-background/50 px-4 py-2.5 text-sm text-foreground shadow-sm transition-all focus:border-primary/50 focus:bg-background focus:outline-none focus:ring-4 focus:ring-primary/20 dark:border-white/10 dark:bg-black/40"
+            className="app-control w-full"
           >
-            <option value="asc">升序</option>
-            <option value="desc">降序</option>
+            <option value="asc">{t('common.ascending')}</option>
+            <option value="desc">{t('common.descending')}</option>
           </select>
         </div>
-      </section>
+      </header>
 
-      {error ? <div className="rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div> : null}
-      {openError ? <div className="rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{openError}</div> : null}
+      {error ? <div className="app-alert-error">{localizeError(error, 'errors.searchFailed')}</div> : null}
+      {openError ? <div className="app-alert-error">{localizeError(openError, 'errors.openFileFailed')}</div> : null}
 
-      <section className="overflow-hidden rounded-2xl border border-white/20 bg-card/80 shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-card/50 dark:shadow-black/40">
-        <div className="grid grid-cols-[1fr_140px_170px_120px] border-b border-border/50 bg-secondary/40 px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <span>名称</span>
-          <span>类型</span>
-          <span>修改时间</span>
-          <span className="text-right">大小</span>
+      <section className="app-surface overflow-hidden" aria-busy={isLoading}>
+        <div className="hidden grid-cols-[minmax(0,1fr)_120px_180px_110px] border-b border-border bg-secondary/35 px-5 py-3 text-xs font-semibold text-muted-foreground md:grid">
+          <span>{t('common.name')}</span>
+          <span>{t('common.type')}</span>
+          <span>{t('common.modifiedTime')}</span>
+          <span className="text-right">{t('common.size')}</span>
         </div>
         <div className="max-h-[68vh] overflow-auto">
-          {isLoading && results.length === 0 ? <div className="px-4 py-8 text-sm text-muted-foreground">正在搜索...</div> : null}
-          {!isLoading && results.length === 0 ? <div className="px-4 py-8 text-sm text-muted-foreground">暂无结果</div> : null}
+          {isLoading && results.length === 0 ? (
+            <div className="app-empty-state" role="status">
+              <ArrowPathIcon className="h-7 w-7 animate-spin text-primary" />
+              <p className="font-medium text-foreground">{t('search.loading')}</p>
+              <p>{t('search.loadingDescription')}</p>
+            </div>
+          ) : null}
+          {!isLoading && results.length === 0 ? (
+            <div className="app-empty-state">
+              <MagnifyingGlassIcon className="h-8 w-8 text-muted-foreground/60" />
+              <p className="font-medium text-foreground">{t('search.empty')}</p>
+              <p>{query ? t('search.emptyWithQuery') : t('search.emptyWithoutQuery')}</p>
+            </div>
+          ) : null}
           {results.map((entry) => (
             <div
               key={`${entry.kind}-${entry.rootId}-${entry.relPath}`}
-              className="grid cursor-pointer grid-cols-[1fr_140px_170px_120px] items-center gap-4 border-b border-border/30 px-6 py-3 transition-all hover:bg-secondary/60 hover:pl-8"
+              className="grid cursor-pointer grid-cols-1 items-center gap-2 border-b border-border/60 px-4 py-3 transition-colors last:border-b-0 hover:bg-secondary/45 sm:px-5 md:grid-cols-[minmax(0,1fr)_120px_180px_110px] md:gap-4"
               onClick={() => handleEntryClick(entry)}
               onDoubleClick={() => {
                 if (entry.kind === 'file') {
@@ -243,21 +287,24 @@ export function HomePage() {
                 }
               }}
             >
-              <div className="flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 items-center gap-3">
                 <SearchEntryThumb entry={entry} />
                 <div className="min-w-0">
-                  <p className="truncate text-sm text-foreground">{entry.name}</p>
+                  <p className="truncate text-sm font-medium text-foreground">{entry.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{entry.relPath || '/'}</p>
+                  <p className="mt-1 truncate text-[11px] text-muted-foreground md:hidden">
+                    {entry.kind === 'folder' ? t('common.folder') : t(ITEM_TYPE_LABEL_KEYS[entry.type])} · {new Date(entry.updatedAt).toLocaleString(locale)} · {entry.kind === 'folder' ? '-' : formatSize(entry.size)}
+                  </p>
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground">{entry.kind === 'folder' ? '文件夹' : TYPE_LABELS[entry.type] ?? '文件'}</span>
-              <span className="text-xs text-muted-foreground">{new Date(entry.updatedAt).toLocaleString()}</span>
-              <span className="text-right text-xs text-muted-foreground">{entry.kind === 'folder' ? '-' : formatSize(entry.size)}</span>
+              <span className="hidden text-xs text-muted-foreground md:block">{entry.kind === 'folder' ? t('common.folder') : t(ITEM_TYPE_LABEL_KEYS[entry.type])}</span>
+              <span className="hidden text-xs text-muted-foreground md:block">{new Date(entry.updatedAt).toLocaleString(locale)}</span>
+              <span className="hidden text-right text-xs text-muted-foreground md:block">{entry.kind === 'folder' ? '-' : formatSize(entry.size)}</span>
             </div>
           ))}
         </div>
         {results.length > 0 ? (
-          <div className="border-t border-border px-2 py-3">
+          <div className="border-t border-border bg-secondary/15 px-2 py-3">
             <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
           </div>
         ) : null}
@@ -272,6 +319,16 @@ export function HomePage() {
         type={preview?.type}
         size={preview?.size}
         ext={preview?.ext}
+        navigation={
+          previewNavigation
+            ? {
+                position: previewNavigation.position,
+                total: previewNavigation.total,
+                onPrevious: previousPreviewEntry ? () => openPreview(previousPreviewEntry) : undefined,
+                onNext: nextPreviewEntry ? () => openPreview(nextPreviewEntry) : undefined,
+              }
+            : undefined
+        }
       />
     </div>
   );

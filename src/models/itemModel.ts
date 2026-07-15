@@ -131,7 +131,7 @@ function runSearchQuery(input: {
 
   const ftsQuery = input.query ? sanitizeFtsQuery(input.query) : "";
   if (input.query && input.query.trim().length > 0 && !ftsQuery) {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Invalid search query.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "搜索条件无效。");
   }
   if (ftsQuery) {
     fromClause = "items_fts f JOIN items i ON i.rowid = f.rowid";
@@ -189,7 +189,7 @@ function runSearchQuery(input: {
       rows
     };
   } catch {
-    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "Invalid search query syntax.");
+    throw new AppError(400, ErrorCodes.VALIDATION_ERROR, "搜索语法无效。");
   }
 }
 

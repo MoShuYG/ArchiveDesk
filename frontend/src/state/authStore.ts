@@ -3,6 +3,7 @@ import type { SessionInfo } from '../types/api';
 import { authService } from '../services/authService';
 import { getAccessToken, getRefreshToken, clearTokens } from '../services/apiService';
 import { ApiRequestError } from '../services/apiService';
+import type { LocalizedError } from '../i18n';
 
 interface AuthState {
   session: SessionInfo | null;
@@ -10,7 +11,7 @@ interface AuthState {
   isLocked: boolean;
   isLoading: boolean;
   needsSetup: boolean;
-  error: string | null;
+  error: LocalizedError | null;
 
   login: (password: string, username?: string) => Promise<void>;
   setupPassword: (password: string, username?: string) => Promise<void>;
@@ -43,8 +44,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         needsSetup: false,
       });
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : '登录失败';
-      set({ isLoading: false, error: message });
+      set({ isLoading: false, error: { value: err, fallbackKey: 'errors.loginFailed' } });
       throw err;
     }
   },
@@ -55,8 +55,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await authService.setupPassword(password, username);
       await get().login(password, username);
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : '初始化密码失败';
-      set({ isLoading: false, error: message });
+      set({ isLoading: false, error: { value: err, fallbackKey: 'errors.setupFailed' } });
       throw err;
     }
   },
@@ -81,8 +80,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await authService.lock();
       set({ isLocked: true });
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : '锁屏失败';
-      set({ error: message });
+      set({ error: { value: err, fallbackKey: 'errors.lockFailed' } });
     }
   },
 
@@ -97,8 +95,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
       });
     } catch (err) {
-      const message = err instanceof ApiRequestError ? err.message : '解锁失败';
-      set({ isLoading: false, error: message });
+      set({ isLoading: false, error: { value: err, fallbackKey: 'errors.unlockFailed' } });
       throw err;
     }
   },

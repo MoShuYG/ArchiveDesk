@@ -17,6 +17,7 @@ export const BROWSER_PREVIEW_EXTENSIONS = new Set([
   "bmp",
   "avif",
   "pdf",
+  "docx",
   "txt",
   "md",
   "json",
@@ -61,6 +62,7 @@ export const MIME_BY_EXT: Record<string, string> = {
   aac: "audio/aac",
   ogg: "audio/ogg",
   pdf: "application/pdf",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   epub: "application/epub+zip",
   cbz: "application/zip",
   cbr: "application/vnd.rar"

@@ -293,4 +293,52 @@ describe("integration api flow", () => {
     expect(entryFile.header["content-type"]).toContain("audio/mpeg");
     expect(entryFile.header["content-disposition"]).toContain("filename*=");
   });
+
+  test("should expose PDF and DOCX files for inline browser previews", async () => {
+    await request(app).post("/api/auth/setup-password").send({ password: "password123" }).expect(201);
+    const login = await request(app).post("/api/auth/login").send({ password: "password123" }).expect(200);
+    const accessToken = login.body.accessToken as string;
+
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "lsm-document-preview-"));
+    await fs.writeFile(path.join(tempRoot, "guide.pdf"), Buffer.from("%PDF-1.4\n%%EOF"));
+    await fs.writeFile(path.join(tempRoot, "notes.docx"), Buffer.from("PK\u0003\u0004fake-docx"));
+
+    const rootRes = await request(app)
+      .post("/api/library/roots")
+      .set(authHeader(accessToken))
+      .send({ name: "document-preview-root", path: tempRoot })
+      .expect(201);
+    const rootId = rootRes.body.id as string;
+
+    const scan = await request(app).post("/api/scan/full").set(authHeader(accessToken)).expect(202);
+    await waitTask(app, accessToken, scan.body.taskId);
+
+    const list = await request(app)
+      .get(`/api/library/roots/${rootId}/entries`)
+      .set(authHeader(accessToken))
+      .query({ relPath: "", sortBy: "name", order: "asc" })
+      .expect(200);
+
+    const pdfEntry = list.body.items.find((item: any) => item.kind === "file" && item.name === "guide.pdf");
+    const docxEntry = list.body.items.find((item: any) => item.kind === "file" && item.name === "notes.docx");
+    expect(pdfEntry?.previewable).toBe(true);
+    expect(docxEntry?.previewable).toBe(true);
+
+    const pdfFile = await request(app)
+      .get(`/api/items/${pdfEntry.itemId}/file`)
+      .set(authHeader(accessToken))
+      .expect(200);
+    expect(pdfFile.header["content-type"]).toContain("application/pdf");
+    expect(pdfFile.header["content-disposition"]).toMatch(/^inline;/);
+
+    const docxFile = await request(app)
+      .get(`/api/library/roots/${rootId}/file`)
+      .set(authHeader(accessToken))
+      .query({ relPath: "notes.docx" })
+      .expect(200);
+    expect(docxFile.header["content-type"]).toContain(
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    );
+    expect(docxFile.header["content-disposition"]).toMatch(/^inline;/);
+  });
 });

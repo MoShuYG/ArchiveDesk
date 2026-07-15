@@ -7,5 +7,5 @@ const targets = ["dist", path.join("frontend", "dist")];
 for (const relativeTarget of targets) {
   const absoluteTarget = path.join(repoRoot, relativeTarget);
   fs.rmSync(absoluteTarget, { force: true, recursive: true });
-  console.log(`Removed ${relativeTarget}`);
+  console.log(`已删除构建产物：${relativeTarget}`);
 }

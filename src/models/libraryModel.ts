@@ -50,7 +50,7 @@ export const libraryModel = {
     ).run(id, input.name, input.path, input.normalizedPath, now, now);
     const created = this.getRootById(id);
     if (!created) {
-      throw new Error("Failed to create root.");
+      throw new Error("创建资源库失败。");
     }
     return created;
   },
