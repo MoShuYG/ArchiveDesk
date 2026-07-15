@@ -10,9 +10,7 @@
 
 ## 🚀 简介
 
-ArchiveDesk，一个本地优先的数字档案管理工具，使用 `React` + `Express` + `SQLite` 构建，面向 Windows 桌面环境。适用于长期整理和检索本地图片、视频、音频、文档等文件，支持离线工作流。
-
-> 当前稳定版本为 **正式版 1**（v1.0.0）。
+ArchiveDesk 是一款用于本地使用的数字档案管理工具，基于 `React` + `Express` + `SQLite` 构建，主要面向 Windows 桌面环境。它适合长期整理和检索本机上的图片、视频、音频及文档等文件，并支持离线工作流。
 
 ### ✨ 特性
 
@@ -21,7 +19,7 @@ ArchiveDesk，一个本地优先的数字档案管理工具，使用 `React` + `
 - 🏷️ 关键词搜索
 - 📋 资源浏览与详情查看
 - 🚀 调用外部程序打开文件
-- 🔒 本地优先，离线优先
+- 🔒 本地运行，支持离线使用
 
 ## ⬇️ 下载
 
@@ -46,48 +44,60 @@ ArchiveDesk，一个本地优先的数字档案管理工具，使用 `React` + `
 
 ## 🎯 适用场景
 
-| ✅ 适合 | ❌ 暂不适合 |
-|---------|------------|
-| 长期整理本地文件 | 多人协作 |
-| 个人数字档案管理 | 云同步场景 |
-| 本地优先、离线优先工作流 | 企业级权限与流程管理 |
-| Windows 桌面环境 | 成熟的媒体管理体验 |
+- 长期整理和检索分散在本机各处的图片、视频、音频及文档
+- 建立个人资料库、创作素材库或数字档案
+- 在不依赖云服务的情况下管理和预览文件
+- 在 Windows 10 / 11 桌面环境中使用离线工作流
 
 ## 👨‍💻 开发
 
 ### 🌍 环境要求
 
 1. Windows 10 / 11
-2. Node.js
-3. npm
+2. Node.js 22.x
+3. npm（随 Node.js 安装）
 
 ### 📋 克隆
 
 ```bash
-git clone git@github.com:MoShuYG/ArchiveDesk.git
+git clone https://github.com/MoShuYG/ArchiveDesk.git
+cd ArchiveDesk
 ```
 
-### 🏗️ 构建
+### 📦 安装依赖
 
-#### 后端
+在项目根目录执行：
 
 ```bash
 npm install
-cp .env.example .env
-npm run dev
+npm --prefix frontend install
 ```
 
-默认地址：`http://localhost:3000`
+首次运行前，在 PowerShell 中复制环境变量模板：
 
-#### 前端
+```powershell
+Copy-Item .env.example .env
+```
+
+### 🚀 启动开发环境
+
+分别打开两个终端：
 
 ```bash
-cd frontend
-npm install
+# 后端：http://localhost:3000
 npm run dev
+
+# 前端：http://localhost:5173
+npm --prefix frontend run dev
 ```
 
-默认地址：`http://localhost:5173`
+如需体验由后端托管前端资源的本地生产模式，可直接运行：
+
+```powershell
+.\start-dev.bat
+```
+
+脚本会先清理并重新构建前后端，然后通过 `http://localhost:3000` 启动应用。
 
 ### ⚙️ 配置
 
@@ -105,55 +115,32 @@ npm run dev
 
 | 模块 | 技术 |
 |------|------|
-| Frontend | React + Vite + TypeScript |
-| State | Zustand |
-| Backend | Express + TypeScript |
-| Database | SQLite |
-| Auth | JWT |
+| 前端 | React 19 + TypeScript + Vite 7 |
+| 界面与状态 | Tailwind CSS 3 + React Router 7 + Zustand 5 |
+| 后端 | Express 4 + TypeScript |
+| 数据库 | SQLite + better-sqlite3 |
+| 文档预览 | PDF.js + Mammoth |
+| 图片与媒体元数据 | Sharp + ffprobe |
+| 身份验证与安全 | JWT + Argon2 + Helmet |
 
 ### 📋 常用命令
 
 ```bash
-# 根目录
-npm run dev          # 启动后端开发服务
-npm run build        # 构建
-npm test             # 测试
-npm run lint         # Lint 检查
-npm run release:check # 发版检查（后端构建、测试、前端 lint 与构建）
-
-# 前端目录
-cd frontend
-npm run dev          # 启动前端开发服务
-npm run build        # 构建前端
-npm run lint         # 前端 Lint 检查
+npm run dev            # 启动后端开发服务
+npm run build          # 构建后端
+npm run build:frontend # 构建前端
+npm run build:all      # 构建前后端
+npm test               # 运行测试
+npm run lint           # 后端类型检查
+npm run lint:frontend  # 前端 Lint 检查
+npm run release:check  # 完整发版检查
 ```
-
-## 📝 路线图
-
-### 近期
-
-- 补充英文版介绍及内容
-
-
-## ⚠️ 当前限制
-
-- 项目结构仍在持续调整
-- 数据模型后续可能继续演化
-- 当前主要面向 Windows
-- 发行包形式还不是最终形态
-- 不同文件类型的高级体验仍在逐步补齐
 
 ## 🤝 贡献
 
-欢迎提交 Issue 和 Pull Request！当前比较适合参与的方向：
+如果你在使用中发现问题，或对功能和体验有新的想法，欢迎通过 Issue 告诉我们；如果愿意动手改进，也欢迎提交 Pull Request。无论是修复 Bug、完善文档、打磨界面，还是补充扫描、搜索和预览相关测试，都能让 ArchiveDesk 变得更好。
 
-- 🐛 Bug 反馈
-- 💻 Windows 实机使用反馈
-- 📖 文档改进
-- 🎨 UI 细节优化
-- 🧪 扫描、搜索和边界情况测试
-
-> 较大的改动建议先开 Issue 讨论。
+准备进行较大的改动时，建议先开一个 Issue 聊聊思路，方便提前确认方向，也能减少重复工作。更多说明请参阅 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 📄 License
 
