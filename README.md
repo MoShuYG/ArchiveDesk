@@ -44,32 +44,23 @@ ArchiveDesk 是一款用于本地使用的数字档案管理工具，基于 `Rea
 
 ## 🎯 适用场景
 
-- 集中处理和检索本机上的图片、视频、音频及文档
+- 集中处理和检索选定文件夹的图片、视频、音频及文档
 - 建立个人资料库、创作素材库或数字档案
-- 在 Windows 10 / 11 桌面环境中本地使用
+- 本地使用
 
 ## 🗂️ 适用文件格式
 
-ArchiveDesk 会扫描并索引资源库中的文件。以下格式提供专门的分类、元数据提取或内置预览：
+ArchiveDesk 会扫描并索引选定文件夹中的文件。以下格式支持在应用内直接预览：
 
 | 类别 | 格式 |
 |------|------|
-| 图片 | JPG / JPEG / PNG / GIF / WebP / BMP / AVIF / TIF / TIFF / TGA |
-| 视频 | MP4 / MKV / AVI / MOV / WMV / FLV / WebM |
+| 图片 | JPG / JPEG / PNG / GIF / WebP / BMP / AVIF |
+| 视频 | MP4 / MOV / WebM |
 | 音频 | MP3 / WAV / FLAC / M4A / AAC / OGG |
-| 文档与文本 | PDF / DOCX / EPUB / TXT / MD / JSON / CSV |
-| 漫画压缩包 | CBZ / CBR |
-| 模型文件 | PT / PTH / SAFETENSORS / ONNX |
+| 文本 | TXT / MD / JSON / CSV |
+| 文档 | DOCX |
 
-其中，可在应用内直接预览的格式包括：
-
-- 图片：JPG / JPEG / PNG / GIF / WebP / BMP / AVIF
-- 视频：MP4 / MOV / WebM
-- 音频：MP3 / WAV / FLAC / M4A / AAC / OGG
-- 文本：TXT / MD / JSON / CSV
-- 文档：PDF / DOCX
-
-音视频文件能否正常播放，还取决于浏览器对文件编码的支持；其他文件仍可进行扫描、索引、查看详情或调用外部程序打开。
+音视频文件能否正常播放，还取决于浏览器对文件编码的支持。
 
 ## 👨‍💻 开发
 
