@@ -2,8 +2,8 @@
 > This codebase was written entirely by AI.
 
 <p align="right">
-  <a href="README.md"><kbd>English</kbd></a>
-  <a href="README.zh-CN.md"><kbd>简体中文</kbd></a>
+  <a href="README.md">English</a> |
+  <a href="README.zh-CN.md">简体中文</a>
 </p>
 
 # ArchiveDesk
