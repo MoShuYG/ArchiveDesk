@@ -1,3 +1,11 @@
+> [!IMPORTANT]
+> This codebase was written entirely by AI.
+
+<p align="right">
+  <a href="README.md"><kbd>English</kbd></a>
+  <a href="README.zh-CN.md"><kbd>简体中文</kbd></a>
+</p>
+
 # ArchiveDesk
 
 <!-- [![banner](_docs/img/banner.svg)](https://github.com/YOUR_USERNAME/ArchiveDesk) -->
@@ -8,20 +16,20 @@
 [![Windows](https://img.shields.io/badge/platform-Windows-blue?logo=windows)](https://github.com/MoShuYG/ArchiveDesk/releases)
 
 
-## 🚀 简介
+## 🚀 Overview
 
-ArchiveDesk 是一款用于本地使用的数字档案管理工具，基于 `React` + `Express` + `SQLite` 构建，主要面向 Windows 桌面环境。它适合长期整理和检索本机上的图片、视频、音频及文档等文件，并支持离线工作流。
+ArchiveDesk is a digital archive management tool designed for local use. Built with `React` + `Express` + `SQLite`, it primarily targets Windows desktop environments. It is suitable for organizing and searching local images, videos, audio files, documents, and other files over the long term, and it supports offline workflows.
 
-### ✨ 特性
+### ✨ Features
 
-- 📁 创建和管理本地资源库
-- 🔍 目录扫描与索引
-- 🏷️ 关键词搜索
-- 📋 资源浏览与详情查看
-- 🚀 调用外部程序打开文件
-- 🔒 本地运行，支持离线使用
+- 📁 Create and manage local libraries
+- 🔍 Scan and index folders
+- 🏷️ Search by keyword
+- 📋 Browse resources and view file details
+- 🚀 Open files with external applications
+- 🔒 Run locally with offline support
 
-## ⬇️ 下载
+## ⬇️ Download
 
 <table>
   <tbody>
@@ -34,126 +42,126 @@ ArchiveDesk 是一款用于本地使用的数字档案管理工具，基于 `Rea
   </tbody>
 </table>
 
-从 [GitHub Releases](https://github.com/MoShuYG/ArchiveDesk/releases) 下载正式版压缩包，解压到本地目录，按压缩包内说明运行即可。
+Download the official archive from [GitHub Releases](https://github.com/MoShuYG/ArchiveDesk/releases), extract it to a local folder, and follow the included instructions to start the application.
 
-如需从源码运行，请参考下方 [开发](#-开发) 部分。
+To run ArchiveDesk from source, see the [Development](#-development) section below.
 
-<!-- ## 🖼️ 界面预览 -->
+<!-- ## 🖼️ Interface Preview -->
 
 <!-- ![](_docs/img/ui-demo.png) -->
 
-## 🎯 适用场景
+## 🎯 Use Cases
 
-- 集中处理和检索选定文件夹的图片、视频、音频及文档
-- 建立个人资料库、创作素材库或数字档案
-- 本地使用
+- Centrally process and search images, videos, audio files, and documents in selected folders
+- Build a personal library, creative asset collection, or digital archive
+- Use locally
 
-## 🗂️ 适用文件格式
+## 🗂️ Supported File Formats
 
-ArchiveDesk 会扫描并索引选定文件夹中的文件。以下格式支持在应用内直接预览：
+ArchiveDesk scans and indexes files in selected folders. The following formats can be previewed directly in the application:
 
-| 类别 | 格式 |
-|------|------|
-| 图片 | JPG / JPEG / PNG / GIF / WebP / BMP / AVIF |
-| 视频 | MP4 / MOV / WebM |
-| 音频 | MP3 / WAV / FLAC / M4A / AAC / OGG |
-| 文本 | TXT / MD / JSON / CSV |
-| 文档 | DOCX |
+| Category | Formats |
+|----------|---------|
+| Images | JPG / JPEG / PNG / GIF / WebP / BMP / AVIF |
+| Videos | MP4 / MOV / WebM |
+| Audio | MP3 / WAV / FLAC / M4A / AAC / OGG |
+| Text | TXT / MD / JSON / CSV |
+| Documents | DOCX |
 
-音视频文件能否正常播放，还取决于浏览器对文件编码的支持。其他格式也可以通过 Windows 默认软件打开。
+Audio and video playback depends on the browser's codec support. Other formats can be opened with their default Windows applications.
 
-## 👨‍💻 开发
+## 👨‍💻 Development
 
-### 🌍 环境要求
+### 🌍 Requirements
 
 1. Windows 10 / 11
 2. Node.js 22.x
-3. npm（随 Node.js 安装）
+3. npm (included with Node.js)
 
-### 📋 克隆
+### 📋 Clone
 
 ```bash
 git clone https://github.com/MoShuYG/ArchiveDesk.git
 cd ArchiveDesk
 ```
 
-### 📦 安装依赖
+### 📦 Install Dependencies
 
-在项目根目录执行：
+Run the following commands from the project root:
 
 ```bash
 npm install
 npm --prefix frontend install
 ```
 
-首次运行前，在 PowerShell 中复制环境变量模板：
+Before the first run, copy the environment variable template in PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-### 🚀 启动开发环境
+### 🚀 Start the Development Environment
 
-分别打开两个终端：
+Open two terminals and run:
 
 ```bash
-# 后端：http://localhost:3000
+# Backend: http://localhost:3000
 npm run dev
 
-# 前端：http://localhost:5173
+# Frontend: http://localhost:5173
 npm --prefix frontend run dev
 ```
 
-如需体验由后端托管前端资源的本地生产模式，可直接运行：
+To try the local production mode, where the backend serves the built frontend, run:
 
 ```powershell
 .\start-dev.bat
 ```
 
-脚本会先清理并重新构建前后端，然后通过 `http://localhost:3000` 启动应用。
+The script cleans and rebuilds both the backend and frontend before starting the application at `http://localhost:3000`.
 
-### ⚙️ 配置
+### ⚙️ Configuration
 
-参考根目录中的 `.env.example`，常用配置项：
+See `.env.example` in the project root. Common settings include:
 
-| 变量 | 说明 |
-|------|------|
-| `PORT` | 后端端口 |
-| `DB_PATH` | 数据库路径 |
-| `JWT_ACCESS_SECRET` | JWT Access Token 密钥 |
-| `JWT_REFRESH_SECRET` | JWT Refresh Token 密钥 |
-| `CORS_ORIGIN` | 跨域来源 |
+| Variable | Description |
+|----------|-------------|
+| `PORT` | Backend port |
+| `DB_PATH` | Database path |
+| `JWT_ACCESS_SECRET` | JWT access token secret |
+| `JWT_REFRESH_SECRET` | JWT refresh token secret |
+| `CORS_ORIGIN` | Allowed CORS origins |
 
-### 🛠️ 技术栈
+### 🛠️ Tech Stack
 
-| 模块 | 技术 |
-|------|------|
-| 前端 | React 19 + TypeScript + Vite 7 |
-| 界面与状态 | Tailwind CSS 3 + React Router 7 + Zustand 5 |
-| 后端 | Express 4 + TypeScript |
-| 数据库 | SQLite + better-sqlite3 |
-| 文档预览 | PDF.js + Mammoth |
-| 图片与媒体元数据 | Sharp + ffprobe |
-| 身份验证与安全 | JWT + Argon2 + Helmet |
+| Component | Technology |
+|-----------|------------|
+| Frontend | React 19 + TypeScript + Vite 7 |
+| UI and state | Tailwind CSS 3 + React Router 7 + Zustand 5 |
+| Backend | Express 4 + TypeScript |
+| Database | SQLite + better-sqlite3 |
+| Document preview | PDF.js + Mammoth |
+| Image and media metadata | Sharp + ffprobe |
+| Authentication and security | JWT + Argon2 + Helmet |
 
-### 📋 常用命令
+### 📋 Common Commands
 
 ```bash
-npm run dev            # 启动后端开发服务
-npm run build          # 构建后端
-npm run build:frontend # 构建前端
-npm run build:all      # 构建前后端
-npm test               # 运行测试
-npm run lint           # 后端类型检查
-npm run lint:frontend  # 前端 Lint 检查
-npm run release:check  # 完整发版检查
+npm run dev            # Start the backend development server
+npm run build          # Build the backend
+npm run build:frontend # Build the frontend
+npm run build:all      # Build both the backend and frontend
+npm test               # Run tests
+npm run lint           # Run backend type checking
+npm run lint:frontend  # Run frontend linting
+npm run release:check  # Run the complete release check
 ```
 
-## 🤝 贡献
+## 🤝 Contributing
 
-如果你在使用中发现问题，或对功能和体验有新的想法，欢迎通过 Issue 告诉我们；如果愿意动手改进，也欢迎提交 Pull Request。无论是修复 Bug、完善文档、打磨界面，还是补充扫描、搜索和预览相关测试，都能让 ArchiveDesk 变得更好。
+Found a bug or have an idea that could improve ArchiveDesk? Open an Issue and tell us about it. Pull Requests are also welcome if you would like to help directly. Bug fixes, documentation improvements, interface polish, and additional coverage for scanning, search, and preview behavior are all valuable contributions.
 
-准备进行较大的改动时，建议先开一个 Issue 聊聊思路，方便提前确认方向，也能减少重复工作。更多说明请参阅 [CONTRIBUTING.md](CONTRIBUTING.md)。
+Before starting a larger change, please open an Issue to discuss the approach. This helps confirm the direction early and avoids duplicated effort. See [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
 
 ## 📄 License
 
