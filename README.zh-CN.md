@@ -118,6 +118,8 @@ npm --prefix frontend run dev
 .\start-dev.bat
 ```
 
+Windows 启动脚本首次运行会从 nodejs.org 下载 **Node.js v22.23.3（x64）**，校验固定的 SHA-256 后缓存到 `.runtime-data/node`。后续启动可离线复用此版本，让数据库原生模块使用匹配的 Node.js ABI。缺少依赖时，执行 `.\start-dev.bat -InstallDeps`。启动失败会保留控制台窗口，便于查看错误。
+
 脚本会先清理并重新构建前后端，然后通过 `http://localhost:3000` 启动应用。
 
 ### ⚙️ 配置

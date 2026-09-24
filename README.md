@@ -118,6 +118,8 @@ To try the local production mode, where the backend serves the built frontend, r
 .\start-dev.bat
 ```
 
+The Windows launcher downloads Node.js **v22.23.3 (x64)** from nodejs.org on first use, verifies its pinned SHA-256 checksum, and caches it under `.runtime-data/node`. Later launches reuse this runtime offline. This keeps the native database module on the matching Node.js ABI. If dependencies are missing, run `.\start-dev.bat -InstallDeps`. A failed launch keeps the console open to show the error.
+
 The script cleans and rebuilds both the backend and frontend before starting the application at `http://localhost:3000`.
 
 ### ⚙️ Configuration

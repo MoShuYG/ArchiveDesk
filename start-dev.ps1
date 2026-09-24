@@ -5,6 +5,9 @@
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $root "scripts\ensure-node-runtime.ps1")
+$nodeDirectory = Ensure-NodeRuntime -CacheRoot (Join-Path $root ".runtime-data\node")
+$env:PATH = "$nodeDirectory;$env:PATH"
 $frontend = Join-Path $root "frontend"
 $serverEntry = Join-Path $root "dist\src\server.js"
 $browserUrl = "http://localhost:3000"
