@@ -1,4 +1,4 @@
-﻿ArchiveDesk v1.0.0 Windows 正式版
+﻿ArchiveDesk v1.0.1 Windows 正式版
 
 双击 start.bat 启动 ArchiveDesk，并等待几秒完成初始化。
 
@@ -8,3 +8,14 @@ http://localhost:3000
 此正式版默认关闭 REQUIRE_HTTPS，便于本地运行。
 
 如果端口 3000 已被占用，启动可能会失败，请先关闭占用程序后重试。
+
+内置 Node.js v22.23.3，无需另行安装 Node.js 或 npm。请在 Windows 10/11 x64 上完整解压后运行。使用期间请保持控制台打开，启动失败会保留错误信息。
+
+English
+
+Extract the complete ZIP on Windows 10/11 x64, then double-click start.bat.
+Node.js v22.23.3 is bundled. No separate Node.js or npm installation is required.
+If the browser does not open automatically, visit http://localhost:3000.
+REQUIRE_HTTPS is disabled for local use. Keep the console open while using the app.
+If port 3000 is occupied, close the conflicting application and try again.
+Startup errors remain visible in the console.

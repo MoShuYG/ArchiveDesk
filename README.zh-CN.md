@@ -44,6 +44,8 @@ ArchiveDesk 是一款用于本地使用的数字档案管理工具，基于 `Rea
 
 从 [GitHub Releases](https://github.com/MoShuYG/ArchiveDesk/releases) 下载正式版压缩包，解压到本地目录，按压缩包内说明运行即可。
 
+V1.0.1 已内置 Windows x64 版 Node.js v22.23.3，双击 `start.bat` 即可启动，无需另行安装 Node.js 或 npm。
+
 如需从源码运行，请参考下方 [开发](#-开发) 部分。
 
 <!-- ## 🖼️ 界面预览 -->

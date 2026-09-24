@@ -44,6 +44,8 @@ ArchiveDesk is a digital archive management tool designed for local use. Built w
 
 Download the official archive from [GitHub Releases](https://github.com/MoShuYG/ArchiveDesk/releases), extract it to a local folder, and follow the included instructions to start the application.
 
+V1.0.1 bundles Node.js v22.23.3 for Windows x64. Double-click `start.bat`; no separate Node.js or npm installation is required.
+
 To run ArchiveDesk from source, see the [Development](#-development) section below.
 
 <!-- ## 🖼️ Interface Preview -->

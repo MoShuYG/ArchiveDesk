@@ -1,5 +1,6 @@
 ﻿param(
-    [string]$Version = "1.0.0"
+    [ValidatePattern('^\d+\.\d+\.\d+$')]
+    [string]$Version = "1.0.1"
 )
 
 $ErrorActionPreference = "Stop"
@@ -33,6 +34,9 @@ function Write-Utf8BomFile {
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot "ensure-node-runtime.ps1")
+$nodeDirectory = Ensure-NodeRuntime -CacheRoot (Join-Path $repoRoot ".runtime-data\node")
+$env:PATH = "$nodeDirectory;$env:PATH"
 $releaseName = "ArchiveDesk-v$Version-win"
 $releaseRoot = Join-Path $repoRoot "release"
 $stagingDir = Join-Path $releaseRoot $releaseName
@@ -63,10 +67,10 @@ foreach ($path in $requiredPaths) {
 }
 
 if (Test-Path -LiteralPath $stagingDir) {
-    Remove-Item -LiteralPath $stagingDir -Recurse -Force
+    throw "Release staging directory already exists: $stagingDir"
 }
 if (Test-Path -LiteralPath $zipPath) {
-    Remove-Item -LiteralPath $zipPath -Force
+    throw "Release archive already exists: $zipPath"
 }
 
 New-Item -ItemType Directory -Path $releaseRoot -Force | Out-Null
@@ -79,6 +83,9 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "package.json") -Destination $stagin
 Copy-Item -LiteralPath (Join-Path $repoRoot "package-lock.json") -Destination $stagingDir
 Copy-Item -LiteralPath (Join-Path $repoRoot ".env.example") -Destination $stagingDir
 Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination $stagingDir
+New-Item -ItemType Directory -Path (Join-Path $stagingDir "runtime") -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $nodeDirectory "node.exe") -Destination (Join-Path $stagingDir "runtime")
+Copy-Item -LiteralPath (Join-Path $nodeDirectory "LICENSE") -Destination (Join-Path $stagingDir "runtime\NODE-LICENSE.txt")
 
 $quickStartContent = [System.IO.File]::ReadAllText($repoQuickStartPath)
 Write-Utf8BomFile -Path $quickStartPath -Content $quickStartContent
@@ -92,13 +99,19 @@ setlocal
 cd /d "%~dp0"
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start.ps1"
 set EXIT_CODE=%ERRORLEVEL%
+if not "%EXIT_CODE%"=="0" (
+    echo ArchiveDesk failed to start. See the error above.
+    pause
+)
 endlocal & exit /b %EXIT_CODE%
 '@
 
 $startPs1 = @'
+param([switch]$NoBrowser)
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$nodeExe = Join-Path $root "runtime\node.exe"
 $serverEntry = Join-Path $root "dist\src\server.js"
 $browserUrl = "http://localhost:3000"
 
@@ -122,12 +135,8 @@ try {
         Copy-Item -LiteralPath ".env.example" -Destination ".env"
     }
 
-    Get-Command node -ErrorAction SilentlyContinue | Out-Null
-    if (-not $?) {
-        Write-Host "未在 PATH 中检测到 Node.js。" -ForegroundColor Red
-        Write-Host "请先安装 Node.js，再重新运行 start.bat。" -ForegroundColor Red
-        Read-Host "按回车键退出"
-        exit 1
+    if (-not (Test-Path -LiteralPath $nodeExe)) {
+        throw "Missing bundled runtime: runtime\node.exe. Please extract the complete ZIP."
     }
 
     if (-not (Test-Path $serverEntry)) {
@@ -137,17 +146,16 @@ try {
     $env:NODE_ENV = "production"
     $env:REQUIRE_HTTPS = "false"
 
-    Start-BrowserLaunch -Url $browserUrl
+    if (-not $NoBrowser) { Start-BrowserLaunch -Url $browserUrl }
     Write-Host "ArchiveDesk 启动中..." -ForegroundColor Green
     Write-Host "按 Ctrl+C 可停止服务" -ForegroundColor Gray
 
-    & node $serverEntry
+    & $nodeExe $serverEntry
     $exitCode = $LASTEXITCODE
     if ($exitCode -ne 0) {
         Write-Host "" 
         Write-Host "ArchiveDesk 启动失败。" -ForegroundColor Red
         Write-Host "如果端口 3000 已被占用，请先关闭占用程序后重试。" -ForegroundColor Red
-        Read-Host "按回车键退出"
         exit $exitCode
     }
 } finally {
